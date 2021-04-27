@@ -70,18 +70,12 @@ flutter:
     - family: Architects Daughter
       fonts:
         - asset: fonts/ArchitectsDaughter-Regular.ttf
-    - family: Freckle Face
-      fonts:
-        - asset: fonts/FreckleFace-Regular.ttf
     - family: Orelega One
       fonts:
         - asset: fonts/OrelegaOne-Regular.ttf
     - family: Original Surfer
       fonts:
         - asset: fonts/OriginalSurfer-Regular.ttf
-    - family: Zen Dots
-      fonts:
-        - asset: fonts/ZenDots-Regular.ttf
 
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
