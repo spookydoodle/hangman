@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'game.dart';
+
 class Home extends StatefulWidget {
   @override
   _HomeState createState() => _HomeState();
@@ -9,7 +11,6 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   var name = 'Hangman:\nGuess The News';
-  var menuItems = <String>['Play', 'High Scores', 'Exit'];
 
   @override
   Widget build(BuildContext context) {
@@ -52,20 +53,9 @@ class _HomeState extends State<Home> {
               padding: const EdgeInsets.only(top: 40.0),
               child: Column(
                 children: <Widget>[
-                  ...menuItems.map((item) => SizedBox(
-                    width: 300.0,
-                    height: 60.0,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5.0),
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        child: Text(
-                              item,
-                              style: Theme.of(context).textTheme.headline6.copyWith(color: Colors.white),
-                            ),
-                      ),
-                    ),
-                  ))
+                  navButton("Play", _onPlay),
+                  navButton("Leaderboard", _onLeaderboard),
+                  navButton("Play", _onExit),
                 ],
               ),
             ),
@@ -74,6 +64,39 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+
+  Widget navButton(String name, onPressed) => SizedBox(
+    width: 300.0,
+    height: 60.0,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        child: Text(
+          name,
+          style: Theme.of(context)
+              .textTheme
+              .headline6
+              .copyWith(color: Colors.white),
+        ),
+      ),
+    ),
+  );
+
+  _onPlay() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => Game()));
+  }
+
+  _onLeaderboard() {
+  }
+
+  _onExit() {
+
+  }
+
 }
 
 // Dummy code

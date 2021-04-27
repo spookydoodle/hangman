@@ -48,6 +48,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - images/doodle-1/main.png
+    - images/doodle-1/wrong_0.png
     - images/doodle-1/wrong_1.png
     - images/doodle-1/wrong_2.png
     - images/doodle-1/wrong_3.png
