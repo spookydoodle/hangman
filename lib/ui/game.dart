@@ -52,7 +52,7 @@ class _GameState extends State<Game> {
 
     //  Assign random keyword
     keywordIndex = 0;
-    keyword = keywords[keywordIndex].toString().toUpperCase();
+    _selectKeyword();
   }
 
   @override
@@ -66,6 +66,7 @@ class _GameState extends State<Game> {
             children: <Widget>[
               Column(
                 children: [
+                  Text('Won games: $keywordIndex'),
                   Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
                   Padding(
                     padding: const EdgeInsets.only(top: 20.0),
@@ -189,11 +190,25 @@ class _GameState extends State<Game> {
     mistakeIndex = 0;
   }
 
+  void _increaseKeywordndex() {
+    keywordIndex++;
+  }
+
+  void _selectKeyword() {
+    keyword = keywords[keywordIndex % keywords.length].toString().toUpperCase();
+  }
+
+  void _resetAlphabet() {
+    _usedLetters = [];
+    _wrongLetters = [];
+  }
+
   _nextKeyword() {
     setState(() {
-      mistakeIndex = 0;
-      keywordIndex++;
-      keyword = keywords[keywordIndex % keywords.length];
+      _resetMistakeIndex();
+      _increaseKeywordndex();
+      _selectKeyword();
+      _resetAlphabet();
       _setGameOver(false);
     });
   }
