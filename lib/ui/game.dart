@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class Game extends StatefulWidget {
@@ -7,6 +7,19 @@ class Game extends StatefulWidget {
 }
 
 class _GameState extends State<Game> {
+  final List _alphabet = ['ABCDEFG', 'HIJKLMN', 'OPQRSTU', 'VWXYZ'];
+  List _usedLetters = [];
+
+  final List mistakeImages = [
+    Image.asset('images/doodle-1/wrong_0.png'),
+    Image.asset('images/doodle-1/wrong_1.png'),
+    Image.asset('images/doodle-1/wrong_2.png'),
+    Image.asset('images/doodle-1/wrong_3.png'),
+    Image.asset('images/doodle-1/wrong_4.png'),
+    Image.asset('images/doodle-1/wrong_5.png'),
+    Image.asset('images/doodle-1/wrong_6.png'),
+  ];
+
   List keywords = [
     "Cities urge people to stay home on Dutch king's birthday",
     "Global rights group accuses Israel of apartheid, persecution",
@@ -20,21 +33,13 @@ class _GameState extends State<Game> {
     "The Debate - Erdogan's battles: Turkey's leader digs in against domestic rivals",
   ];
 
-  final List _alphabet = ['ABCDEFG', 'HIJKLMN', 'OPQRSTU', 'VWXYZ'];
-  final List mistakeImages = [
-    Image.asset('images/doodle-1/wrong_0.png'),
-    Image.asset('images/doodle-1/wrong_1.png'),
-    Image.asset('images/doodle-1/wrong_2.png'),
-    Image.asset('images/doodle-1/wrong_3.png'),
-    Image.asset('images/doodle-1/wrong_4.png'),
-    Image.asset('images/doodle-1/wrong_5.png'),
-    Image.asset('images/doodle-1/wrong_6.png'),
-  ];
+  int keywordIndex;
+  String keyword;
 
   bool gameOver = false;
-  int keywordIndex = 0;
   int mistakeIndex = 0;
   final int maxMistakes = 7;
+
 
   @override
   void initState() {
@@ -44,6 +49,14 @@ class _GameState extends State<Game> {
     // Shuffle the keywords list
     keywords.shuffle();
     print(keywords);
+
+    //  Assign random keyword
+    keywordIndex = new Random().nextInt(keywords.length);
+    keyword = keywords[keywordIndex].toString().toUpperCase();
+
+    // Hide alphabet characters from _alphabet array and leave the other chars visible
+    print(_alphabet.join('').split(''));
+    print('After: $keyword');
   }
 
   @override
@@ -70,7 +83,7 @@ class _GameState extends State<Game> {
               ),
               Spacer(),
               Text(
-                '_ _ \n_ _ _\n _ _',
+                _replaceChar(),
                 textAlign: TextAlign.center,
               ),
               Spacer(),
@@ -81,11 +94,13 @@ class _GameState extends State<Game> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             ...row.split('').map((char) => OutlinedButton(
-                                  onPressed: () => _onLetterPressed(char),
+                                  onPressed: () => _checkLetter(char),
                                   child: Text(
                                     char.toString().toUpperCase(),
                                     style:
-                                        Theme.of(context).textTheme.bodyText1,
+                                        Theme.of(context).textTheme.bodyText1.copyWith(
+                                          color: _usedLetters.contains(char) ? Colors.grey : Colors.black,
+                                        ),
                                   ),
                                 ))
                           ],
@@ -100,11 +115,36 @@ class _GameState extends State<Game> {
     );
   }
 
-  void _onLetterPressed(char) {
-    setState(() {
-      _onMistake();
+  String _replaceChar() {
+    var keywordCopy = [...keyword.split('')].join('').toUpperCase();
+    _alphabet.join('').split('').forEach((char) {
+      if(!_usedLetters.contains(char)) {
+        keywordCopy = keywordCopy.replaceAll(char, '_ ');
+      }
     });
+    print(keywordCopy);
+
+    return keywordCopy;
   }
+
+  void _checkLetter(String char) {
+
+    if(!gameOver) {
+      setState(() {
+        _usedLetters.add(char);
+      });
+    }
+
+    if (keyword.contains(char)) {
+      _onCorrect();
+    } else {
+      _onMistake();
+    }
+  }
+
+  void _onCorrect() {
+
+}
 
   // Increase index and if reached the max allowed mistakes end the game and reset index
   void _onMistake() {
@@ -124,9 +164,9 @@ class _GameState extends State<Game> {
   }
 
   void _setGameOver(bool b) {
-  gameOver = b;
-  print("Game Over!");
-}
+    gameOver = b;
+    print("Game Over!");
+  }
 
   void _resetMistakeIndex() {
     mistakeIndex = 0;
