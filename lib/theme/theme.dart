@@ -33,11 +33,14 @@ OutlinedButtonThemeData _appOutlinedButtonTheme() => OutlinedButtonThemeData(
       style: TextButton.styleFrom(
         padding: EdgeInsets.all(6.0),
         minimumSize: Size(40, 20),
+        primary: _secondaryColor,
       ),
     );
 
 ElevatedButtonThemeData _appElevatedButtonTheme() => ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.all(6.0),
+        minimumSize: Size(40, 20),
         primary: _secondaryColor,
       ),
     );

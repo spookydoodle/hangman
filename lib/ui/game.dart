@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class Game extends StatefulWidget {
@@ -9,6 +10,7 @@ class Game extends StatefulWidget {
 class _GameState extends State<Game> {
   final List _alphabet = ['ABCDEFG', 'HIJKLMN', 'OPQRSTU', 'VWXYZ'];
   List _usedLetters = [];
+  List _wrongLetters = [];
 
   final List mistakeImages = [
     Image.asset('images/doodle-1/wrong_0.png'),
@@ -40,7 +42,6 @@ class _GameState extends State<Game> {
   int mistakeIndex = 0;
   final int maxMistakes = 7;
 
-
   @override
   void initState() {
     // TODO: implement initState
@@ -64,7 +65,8 @@ class _GameState extends State<Game> {
     return Scaffold(
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.only(top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
+          padding: const EdgeInsets.only(
+              top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
           child: Column(
             children: <Widget>[
               Column(
@@ -90,11 +92,9 @@ class _GameState extends State<Game> {
                 ],
               ),
               Spacer(),
-              Text(
-                _replaceChar(),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.subtitle1
-              ),
+              Text(_replaceChar(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.subtitle1),
               Spacer(),
               Container(
                 child: Column(
@@ -102,16 +102,26 @@ class _GameState extends State<Game> {
                     ..._alphabet.map((row) => Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
-                            ...row.split('').map((char) => OutlinedButton(
-                                  onPressed: () => _checkLetter(char),
-                                  child: Text(
-                                    char.toString().toUpperCase(),
-                                    style:
-                                        Theme.of(context).textTheme.bodyText1.copyWith(
-                                          color: _usedLetters.contains(char) ? Colors.grey : Colors.black,
-                                        ),
-                                  ),
-                                ))
+                            ...row.split('').map((char) => _getButton(
+                              char,
+                                Text(
+                                  char.toString().toUpperCase(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyText1
+                                      .copyWith(
+                                        color: _wrongLetters.contains(char)
+                                            ? Theme.of(context).accentColor
+                                            : (_usedLetters.contains(char)
+                                                ? Colors.grey
+                                                : Theme.of(context)
+                                                    .primaryColor),
+                                        decoration: _usedLetters.contains(char)
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
+                                ),
+                                () => _checkLetter(char)))
                           ],
                         ))
                   ],
@@ -127,7 +137,7 @@ class _GameState extends State<Game> {
   String _replaceChar() {
     var keywordCopy = [...keyword.split('')].join('').toUpperCase();
     _alphabet.join('').split('').forEach((char) {
-      if(!_usedLetters.contains(char)) {
+      if (!_usedLetters.contains(char)) {
         keywordCopy = keywordCopy.replaceAll(char, '_ ');
       }
     });
@@ -137,8 +147,7 @@ class _GameState extends State<Game> {
   }
 
   void _checkLetter(String char) {
-
-    if(!gameOver) {
+    if (!gameOver) {
       setState(() {
         _usedLetters.add(char);
       });
@@ -147,13 +156,17 @@ class _GameState extends State<Game> {
     if (keyword.contains(char)) {
       _onCorrect();
     } else {
+      _wrongLetters.add(char);
       _onMistake();
     }
   }
 
   void _onCorrect() {
-
-}
+    if (_replaceChar() == keyword) {
+      _setGameOver(true);
+      print("You won");
+    }
+  }
 
   // Increase index and if reached the max allowed mistakes end the game and reset index
   void _onMistake() {
@@ -181,4 +194,14 @@ class _GameState extends State<Game> {
     mistakeIndex = 0;
     print("resetting");
   }
+
+  _getButton(String char, Text text, void Function() onPressed) =>
+    _usedLetters.contains(char) ? OutlinedButton(
+      onPressed: onPressed,
+      child: text,
+    ) : ElevatedButton(
+      onPressed: onPressed,
+      child: text,
+    );
+
 }
