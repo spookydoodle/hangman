@@ -64,27 +64,36 @@ class _GameState extends State<Game> {
     return Scaffold(
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 80.0),
+          padding: const EdgeInsets.only(top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
           child: Column(
             children: <Widget>[
-              Container(
-                height: 150,
-                width: 150,
-                child: Stack(
-                  children: <Widget>[
-                    mistakeIndex > 0 && mistakeIndex <= 7
-                        ? Image.asset('images/doodle-1/wrong_0.png')
-                        : Text(''),
-                    mistakeIndex > 1 && mistakeIndex <= 7
-                        ? mistakeImages[mistakeIndex - 1]
-                        : Text(''),
-                  ],
-                ),
+              Column(
+                children: [
+                  Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20.0),
+                    child: Container(
+                      height: 120,
+                      width: 120,
+                      child: Stack(
+                        children: <Widget>[
+                          mistakeIndex > 0 && mistakeIndex <= 7
+                              ? Image.asset('images/doodle-1/wrong_0.png')
+                              : Text(''),
+                          mistakeIndex > 1 && mistakeIndex <= 7
+                              ? mistakeImages[mistakeIndex - 1]
+                              : Text(''),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               Spacer(),
               Text(
                 _replaceChar(),
                 textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.subtitle1
               ),
               Spacer(),
               Container(
