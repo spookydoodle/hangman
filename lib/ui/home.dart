@@ -14,6 +14,17 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actionsIconTheme: IconThemeData(
+          color: Theme.of(context).primaryColor,
+        ),
+        actions: <Widget>[
+          IconButton(icon: Icon(Icons.settings), onPressed: () {}),
+          IconButton(icon: Icon(Icons.account_circle), onPressed: () {})
+        ],
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -40,10 +51,22 @@ class _HomeState extends State<Home> {
             Padding(
               padding: const EdgeInsets.only(top: 40.0),
               child: Column(
-                children: <Widget>[...menuItems.map((item) => Text(
-                    item,
-                  style: Theme.of(context).textTheme.headline6,
-                ))],
+                children: <Widget>[
+                  ...menuItems.map((item) => SizedBox(
+                    width: 300.0,
+                    height: 60.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5.0),
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        child: Text(
+                              item,
+                              style: Theme.of(context).textTheme.headline6.copyWith(color: Colors.white),
+                            ),
+                      ),
+                    ),
+                  ))
+                ],
               ),
             ),
           ],

@@ -3,6 +3,6 @@ import 'package:hangman/theme/theme.dart';
 import 'package:hangman/ui/home.dart';
 
 void main() => runApp(new MaterialApp(
-  theme: buildAppTheme(),
+  theme: appTheme,
   home: Home(),
 ));

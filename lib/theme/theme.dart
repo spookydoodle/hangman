@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:hangman/utils/hex_color.dart';
 
-final ThemeData _appTheme = buildAppTheme();
+final ThemeData appTheme = _buildAppTheme();
 
-ThemeData buildAppTheme() {
+final _primaryColorLight = HexColor('2C2234');
+final _primaryColor = HexColor('16111A');
+final _primaryColorDark = HexColor('000000');
+final _secondaryColorLight = HexColor('FCD3DE');
+final _secondaryColor = HexColor('FF5D73');
+final _secondaryColorDark = HexColor('CC5A71');
+final _light = HexColor('F7F7F7');
+
+ThemeData _buildAppTheme() {
   // Get dark theme as a base and overwrite relevant elements
   final ThemeData base = ThemeData.light();
-  final _primaryColorLight = HexColor('2C2234');
-  final _primaryColor = HexColor('16111A');
-  final _primaryColorDark = HexColor('000000');
-  final _secondaryColorLight = HexColor('FCD3DE');
-  final _secondaryColor = HexColor('FF5D73');
-  final _secondaryColorDark = HexColor('CC5A71');
-  final _light = HexColor('F7F7F7');
 
   return base.copyWith(
     brightness: Brightness.light,
@@ -81,6 +82,7 @@ TextTheme _appTextTheme(TextTheme base) {
         button: base.button.copyWith(
           // letterSpacing: 3.0,
           fontSize: 20.0,
+          // color: Colors.white
         ),
       )
       .apply(
