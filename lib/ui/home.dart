@@ -76,8 +76,7 @@ class _HomeState extends State<Home> {
           name,
           style: Theme.of(context)
               .textTheme
-              .headline6
-              .copyWith(color: Colors.white),
+              .button,
         ),
       ),
     ),

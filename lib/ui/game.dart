@@ -103,14 +103,13 @@ class _GameState extends State<Game> {
                                   char.toString().toUpperCase(),
                                   style: Theme.of(context)
                                       .textTheme
-                                      .bodyText1
+                                      .button
                                       .copyWith(
                                         color: _wrongLetters.contains(char)
                                             ? Theme.of(context).accentColor
                                             : (_usedLetters.contains(char)
                                                 ? Colors.grey
-                                                : Theme.of(context)
-                                                    .primaryColor),
+                                                : null),
                                         decoration: _usedLetters.contains(char)
                                             ? TextDecoration.lineThrough
                                             : TextDecoration.none,

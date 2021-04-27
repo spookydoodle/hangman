@@ -31,7 +31,7 @@ ThemeData _buildAppTheme() {
 
 OutlinedButtonThemeData _appOutlinedButtonTheme() => OutlinedButtonThemeData(
       style: TextButton.styleFrom(
-        padding: EdgeInsets.all(6.0),
+        padding: EdgeInsets.all(2.0),
         minimumSize: Size(40, 20),
         primary: _secondaryColor,
       ),
@@ -39,7 +39,7 @@ OutlinedButtonThemeData _appOutlinedButtonTheme() => OutlinedButtonThemeData(
 
 ElevatedButtonThemeData _appElevatedButtonTheme() => ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.all(6.0),
+        padding: EdgeInsets.all(2.0),
         minimumSize: Size(40, 20),
         primary: _secondaryColor,
       ),
@@ -93,8 +93,8 @@ TextTheme _appTextTheme(TextTheme base) => base
       // Button
       button: base.button.copyWith(
         // letterSpacing: 3.0,
-        fontSize: 20.0,
-        // color: Colors.white
+        fontSize: 25.0,
+        color: Colors.white
       ),
     )
     .apply(
