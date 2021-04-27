@@ -31,6 +31,7 @@ class _GameState extends State<Game> {
     Image.asset('images/doodle-1/wrong_6.png'),
   ];
 
+  bool gameOver = false;
   int keywordIndex = 0;
   int mistakeIndex = 0;
   final int maxMistakes = 7;
@@ -58,8 +59,12 @@ class _GameState extends State<Game> {
                 width: 150,
                 child: Stack(
                   children: <Widget>[
-                    Image.asset('images/doodle-1/wrong_0.png'),
-                    Image.asset('images/doodle-1/wrong_6.png'),
+                    mistakeIndex > 0 && mistakeIndex <= 7
+                        ? Image.asset('images/doodle-1/wrong_0.png')
+                        : Text(''),
+                    mistakeIndex > 1 && mistakeIndex <= 7
+                        ? mistakeImages[mistakeIndex - 1]
+                        : Text(''),
                   ],
                 ),
               ),
@@ -95,7 +100,36 @@ class _GameState extends State<Game> {
     );
   }
 
-  _onLetterPressed(char) {
-    print(char);
+  void _onLetterPressed(char) {
+    setState(() {
+      _onMistake();
+    });
+  }
+
+  // Increase index and if reached the max allowed mistakes end the game and reset index
+  void _onMistake() {
+    if (!gameOver) {
+      _increaseMistakeIndex();
+    }
+
+    if (mistakeIndex == maxMistakes) {
+      _setGameOver(true);
+      // _resetMistakeIndex();
+    }
+  }
+
+  void _increaseMistakeIndex() {
+    mistakeIndex++;
+    print("Mistake $mistakeIndex");
+  }
+
+  void _setGameOver(bool b) {
+  gameOver = b;
+  print("Game Over!");
+}
+
+  void _resetMistakeIndex() {
+    mistakeIndex = 0;
+    print("resetting");
   }
 }
