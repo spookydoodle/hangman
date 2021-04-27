@@ -55,7 +55,7 @@ class _HomeState extends State<Home> {
                 children: <Widget>[
                   navButton("Play", _onPlay),
                   navButton("Leaderboard", _onLeaderboard),
-                  navButton("Play", _onExit),
+                  navButton("Exit", _onExit),
                 ],
               ),
             ),

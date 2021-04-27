@@ -5,6 +5,6 @@ import 'package:hangman/ui/home.dart';
 
 void main() => runApp(new MaterialApp(
   theme: appTheme,
-  // home: Home(),
-  home: Game(),
+  home: Home(),
+  // home: Game(),
 ));

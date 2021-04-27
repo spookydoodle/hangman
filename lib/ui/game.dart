@@ -46,18 +46,13 @@ class _GameState extends State<Game> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    print(keywords);
+
     // Shuffle the keywords list
     keywords.shuffle();
-    print(keywords);
 
     //  Assign random keyword
-    keywordIndex = new Random().nextInt(keywords.length);
+    keywordIndex = 0;
     keyword = keywords[keywordIndex].toString().toUpperCase();
-
-    // Hide alphabet characters from _alphabet array and leave the other chars visible
-    print(_alphabet.join('').split(''));
-    print('After: $keyword');
   }
 
   @override
@@ -141,7 +136,6 @@ class _GameState extends State<Game> {
         keywordCopy = keywordCopy.replaceAll(char, '_ ');
       }
     });
-    print(keywordCopy);
 
     return keywordCopy;
   }
@@ -156,8 +150,7 @@ class _GameState extends State<Game> {
     if (keyword.contains(char)) {
       _onCorrect();
     } else {
-      _wrongLetters.add(char);
-      _onMistake();
+      _onMistake(char);
     }
   }
 
@@ -165,13 +158,18 @@ class _GameState extends State<Game> {
     if (_replaceChar() == keyword) {
       _setGameOver(true);
       print("You won");
+      // TODO: Display message and then run _nextKeyword()
+      _nextKeyword();
     }
   }
 
   // Increase index and if reached the max allowed mistakes end the game and reset index
-  void _onMistake() {
+  void _onMistake(String char) {
     if (!gameOver) {
-      _increaseMistakeIndex();
+      if (!_wrongLetters.contains(char)) {
+        _wrongLetters.add(char);
+        _increaseMistakeIndex();
+      }
     }
 
     if (mistakeIndex == maxMistakes) {
@@ -182,17 +180,23 @@ class _GameState extends State<Game> {
 
   void _increaseMistakeIndex() {
     mistakeIndex++;
-    print("Mistake $mistakeIndex");
   }
 
   void _setGameOver(bool b) {
     gameOver = b;
-    print("Game Over!");
   }
 
   void _resetMistakeIndex() {
     mistakeIndex = 0;
-    print("resetting");
+  }
+
+  _nextKeyword() {
+    setState(() {
+      mistakeIndex = 0;
+      keywordIndex++;
+      keyword = keywords[keywordIndex % keywords.length];
+      _setGameOver(false);
+    });
   }
 
   _getButton(String char, Text text, void Function() onPressed) =>
