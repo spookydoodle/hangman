@@ -12,6 +12,9 @@ class _GameState extends State<Game> {
   List _usedLetters = [];
   List _wrongLetters = [];
 
+  final int _maxMistakesFrom = 3;
+  final int _maxMistakesTo = 7;
+
   final List mistakeImages = [
     Image.asset('images/doodle-1/wrong_0.png'),
     Image.asset('images/doodle-1/wrong_1.png'),
@@ -22,25 +25,37 @@ class _GameState extends State<Game> {
     Image.asset('images/doodle-1/wrong_6.png'),
   ];
 
+  // Get from https://felidae.spookydoodle.com/news/${category}?lang=${lang}&sortBy=timestamp desc&page=${page}
+  // category = { general, business, sport, entertainment, health, science
+  // lang = { en (gb), en (us), de, nl, pl }
+  // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
+  //
   List keywords = [
-    "Cities urge people to stay home on Dutch king's birthday",
-    "Global rights group accuses Israel of apartheid, persecution",
-    "Private Florida school won't employ vaccinated teachers",
-    "5 million Americans have missed 2nd COVID-19 vaccine dose, CDC data shows",
-    "European Union ready to allow vaccinated tourists from America to visit this summer",
-    "Asia Today: India records 320K cases as foreign help arrives",
-    "4 serious accusations facing Boris Johnson at the moment",
-    "Indonesia says 53 Crew Members of Missing Submarine are Dead, Wreckage Found",
-    "Crystal Palace's Zaha extends notable Premier League run against Leicester City",
-    "The Debate - Erdogan's battles: Turkey's leader digs in against domestic rivals",
+    "China's performing arts association bans agent services for minors",
+    "One stunning afternoon: Setbacks imperil Biden’s reset",
+    "Bigg Boss OTT Finale : Pratik Sehajpal Accepts Money Bag & Quits The Show, Becomes First Contestant Of Bigg Boss 15?",
+    "Heavy police presence in Washington ahead of rally for Capitol riot defendants",
+    "Prince Charles's former harpist to show off her skills at free poetry show in Portsmouth",
+    "Life sciences startups in Eastern Washington find a welcoming ecosystem away from big cities",
+    "5G for the enterprise: A status check",
+    "Govt to re-look into provisions of Coffee Act and simplify it: Piyush Goyal",
+    "Trump reportedly called North Korean leader Kim Jong Un 'a fucking lunatic': book",
+    "Don't Wait for a Market Crash: These 2 Top Stocks Are on Sale",
   ];
+
+  // List keywords = [
+  //   "Woman's pet dog found dead in freezer at Livingston home",
+  // ];
+
+  int wonGames;
 
   int keywordIndex;
   String keyword;
 
+  int maxMistakes;
+
   bool gameOver = false;
   int mistakeIndex = 0;
-  final int maxMistakes = 7;
 
   @override
   void initState() {
@@ -51,12 +66,14 @@ class _GameState extends State<Game> {
     keywords.shuffle();
 
     //  Assign random keyword
-    keywordIndex = 0;
-    _selectKeyword();
+    keywordIndex = -1;
+    _nextKeyword();
+    wonGames = 0;
   }
 
   @override
   Widget build(BuildContext context) {
+    print('NEW GAME ' + maxMistakes.toString());
     return Scaffold(
       body: Center(
         child: Padding(
@@ -66,7 +83,7 @@ class _GameState extends State<Game> {
             children: <Widget>[
               Column(
                 children: [
-                  Text('Won games: $keywordIndex'),
+                  Text('Won games: $wonGames'),
                   Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
                   Padding(
                     padding: const EdgeInsets.only(top: 20.0),
@@ -75,10 +92,10 @@ class _GameState extends State<Game> {
                       width: 120,
                       child: Stack(
                         children: <Widget>[
-                          mistakeIndex > 0 && mistakeIndex <= 7
+                          mistakeIndex > 0 && mistakeIndex <= _maxMistakesTo
                               ? Image.asset('images/doodle-1/wrong_0.png')
                               : Text(''),
-                          mistakeIndex > 1 && mistakeIndex <= 7
+                          mistakeIndex > 1 && mistakeIndex <= _maxMistakesTo
                               ? mistakeImages[mistakeIndex - 1]
                               : Text(''),
                         ],
@@ -99,7 +116,7 @@ class _GameState extends State<Game> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             ...row.split('').map((char) => _getButton(
-                              char,
+                                char,
                                 Text(
                                   char.toString().toUpperCase(),
                                   style: Theme.of(context)
@@ -133,7 +150,7 @@ class _GameState extends State<Game> {
     var keywordCopy = [...keyword.split('')].join('').toUpperCase();
     _alphabet.join('').split('').forEach((char) {
       if (!_usedLetters.contains(char)) {
-        keywordCopy = keywordCopy.replaceAll(char, '_ ');
+        keywordCopy = keywordCopy.replaceAll(char, '_');
       }
     });
 
@@ -159,6 +176,7 @@ class _GameState extends State<Game> {
       _setGameOver(true);
       print("You won");
       // TODO: Display message and then run _nextKeyword()
+      _increaseWonGames();
       _nextKeyword();
     }
   }
@@ -174,12 +192,16 @@ class _GameState extends State<Game> {
 
     if (mistakeIndex == maxMistakes) {
       _setGameOver(true);
-      // _resetMistakeIndex();
+      _resetMistakeIndex();
     }
   }
 
   void _increaseMistakeIndex() {
     mistakeIndex++;
+  }
+
+  void _increaseWonGames() {
+    wonGames++;
   }
 
   void _setGameOver(bool b) {
@@ -190,7 +212,7 @@ class _GameState extends State<Game> {
     mistakeIndex = 0;
   }
 
-  void _increaseKeywordndex() {
+  void _increaseKeywordIndex() {
     keywordIndex++;
   }
 
@@ -203,23 +225,48 @@ class _GameState extends State<Game> {
     _wrongLetters = [];
   }
 
-  _nextKeyword() {
+  void _nextKeyword() {
     setState(() {
       _resetMistakeIndex();
-      _increaseKeywordndex();
+      _increaseKeywordIndex();
       _selectKeyword();
+      _setMaxMistakes();
       _resetAlphabet();
       _setGameOver(false);
     });
   }
 
-  _getButton(String char, Text text, void Function() onPressed) =>
-    _usedLetters.contains(char) ? OutlinedButton(
-      onPressed: onPressed,
-      child: text,
-    ) : ElevatedButton(
-      onPressed: onPressed,
-      child: text,
-    );
+  // Adjust maxMistakes based on number of unique characters in the headline
+  void _setMaxMistakes() {
+    print('Getting max for ' + keyword + ' ' + keywordIndex.toString());
+    final int factor = 2;
+    final String alphabetStr = _alphabet.join('');
+    final int alphabetLen = alphabetStr.length;
 
+    int uniqueCharLen = keyword.replaceAll(' ', '').split('').toSet().toList().where((char) => alphabetStr.contains(char.toUpperCase())).length;
+
+    int maxUniqueN = alphabetLen - (_maxMistakesFrom * factor);
+    int minUniqueN = alphabetLen - (_maxMistakesTo * factor);
+
+    if (uniqueCharLen > maxUniqueN) {
+      _increaseKeywordIndex();
+      _nextKeyword();
+      print('SKIPPING ' + keyword + ' ' + uniqueCharLen.toString());
+      return;
+    }
+
+    maxMistakes = uniqueCharLen < minUniqueN ? _maxMistakesTo : ((alphabetLen - uniqueCharLen) / factor).floor();
+    print(uniqueCharLen < minUniqueN ? 'SHORT' + uniqueCharLen.toString() : 'OK ' + ((alphabetLen - uniqueCharLen) / factor).floor().toString() + ' ' + uniqueCharLen.toString() + ' ' + minUniqueN.toString() + ' ' + maxUniqueN.toString() + alphabetLen.toString());
+  }
+
+  _getButton(String char, Text text, void Function() onPressed) =>
+      _usedLetters.contains(char)
+          ? OutlinedButton(
+              onPressed: onPressed,
+              child: text,
+            )
+          : ElevatedButton(
+              onPressed: onPressed,
+              child: text,
+            );
 }
