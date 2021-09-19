@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
+import 'package:hangman/settings/memory.dart';
 import 'package:hangman/ui/home.dart';
 
 class Range {
@@ -56,7 +57,7 @@ class _GameState extends State<Game> {
   Future<List<HeadlineModel>> _data;
 
   // List keywords = [];
-  List keywords = [];
+  List<HeadlineModel> keywords = [];
 
   int page = 1;
   int keywordIndex = -1;
@@ -72,9 +73,11 @@ class _GameState extends State<Game> {
   @override
   void initState() {
     super.initState();
-    _data = HeadlineNetwork().getHeadlines(page: page);
+    _data = HeadlineNetwork().getHeadlines(getPage: getPage);
     _nextGame();
   }
+
+  getPage() => page;
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +182,10 @@ class _GameState extends State<Game> {
     keywordIndex++;
   }
 
+  void _increasePageIndex() {
+    page++;
+  }
+
   void _resetKeywordIndex() {
     keywordIndex = 0;
   }
@@ -189,7 +196,11 @@ class _GameState extends State<Game> {
 
   void _selectKeyword() {
     if (isKeywordIndexOk()) {
-      keyword = keywords[keywordIndex].toString().toUpperCase();
+      HeadlineModel headline = keywords[keywordIndex];
+      keyword = headline.headline.toString().toUpperCase();
+      Memory.processedIds.add(headline.id);
+      print('Processed IDs');
+      print(Memory.processedIds);
 
       return;
     }
@@ -232,8 +243,15 @@ class _GameState extends State<Game> {
   void _updateKeywords() {
     setState(() {
       _data.then((headlines) {
-        keywords = headlines.map((e) => e.headline).toList();
+        _increasePageIndex();
+
+        keywords = headlines.where((headline) => !Memory.processedIds.contains(headline.id)).toList();
+        print(keywords.length.toString());
+
+        // TODO: replace with a method returning if keyword list is ok
         _setIsKeywordListOk(true);
+        _resetKeywordIndex();
+
         _nextGame();
       });
     });
