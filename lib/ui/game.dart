@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
+import 'package:hangman/ui/home.dart';
 
 class Range {
   final int min;
@@ -79,6 +80,11 @@ class _GameState extends State<Game> {
   Widget build(BuildContext context) {
     // print('NEW GAME ' + maxMistakes.toString());
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0.0,
+        actions: [ElevatedButton(onPressed: _onHome, child: Text('Home'))],
+      ),
       body: Center(
           child: FutureBuilder<List<HeadlineModel>>(
         future: _data,
@@ -296,7 +302,7 @@ class _GameState extends State<Game> {
 
     return Padding(
       padding: const EdgeInsets.only(
-          top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
+          top: 20.0, left: 20.0, right: 20.0, bottom: 40.0),
       child: Stack(
         children: [
           Column(
@@ -385,9 +391,18 @@ class _GameState extends State<Game> {
                         color: Colors.black),
                   ]),
                 )
+              // TODO: handle display only if game over
               : Text('')
         ],
       ),
     );
+  }
+
+  // TODO: Make a generic util function
+  _onHome() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => Home()));
   }
 }
