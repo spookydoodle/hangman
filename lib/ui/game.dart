@@ -1,8 +1,30 @@
-import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
+
+class Range {
+  final int min;
+  final int max;
+
+  Range(this.min, this.max);
+}
+
+class GameOverDisplayData {
+  String message;
+  String buttonText;
+  Function onPressed;
+
+  GameOverDisplayData({this.message, this.buttonText, this.onPressed});
+}
+
+class GameOverDisplay {
+  GameOverDisplayData won;
+  GameOverDisplayData lost;
+
+  GameOverDisplay({this.won, this.lost});
+}
 
 class Game extends StatefulWidget {
   @override
@@ -14,8 +36,7 @@ class _GameState extends State<Game> {
   List _usedLetters = [];
   List _wrongLetters = [];
 
-  final int _maxMistakesFrom = 3;
-  final int _maxMistakesTo = 7;
+  final Range _maxMistakesRange = Range(3, 7);
 
   final List mistakeImages = [
     Image.asset('images/doodle-1/wrong_0.png'),
@@ -34,7 +55,7 @@ class _GameState extends State<Game> {
   Future<List<HeadlineModel>> _data;
 
   // List keywords = [];
-  List keywords = ["Something bla cool"];
+  List keywords = [];
 
   int page = 1;
   int keywordIndex = -1;
@@ -44,13 +65,14 @@ class _GameState extends State<Game> {
   int mistakeIndex = 0;
   bool gameOver = false;
 
+  // Play to be set to false when insufficient keywords list (requires data fetch)
+  bool isKeywordListOk = false;
+
   @override
   void initState() {
     super.initState();
     _data = HeadlineNetwork().getHeadlines(page: page);
-    getHeadlines();
-    // TODO: move outside to start game when data available
-    _nextKeyword();
+    _nextGame();
   }
 
   @override
@@ -62,82 +84,8 @@ class _GameState extends State<Game> {
         future: _data,
         builder: (BuildContext context,
                 AsyncSnapshot<List<HeadlineModel>> snapshot) =>
-            snapshot.hasData
-                ? Padding(
-                    padding: const EdgeInsets.only(
-                        top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
-                    child: Column(
-                      children: <Widget>[
-                        Column(
-                          children: [
-                            Text('Won games: $wonGames'),
-                            Text(
-                                'Remaining guesses: ${maxMistakes - mistakeIndex}'),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 20.0),
-                              child: Container(
-                                height: 120,
-                                width: 120,
-                                child: Stack(
-                                  children: <Widget>[
-                                    mistakeIndex > 0 &&
-                                            mistakeIndex <= _maxMistakesTo
-                                        ? Image.asset(
-                                            'images/doodle-1/wrong_0.png')
-                                        : Text(''),
-                                    mistakeIndex > 1 &&
-                                            mistakeIndex <= _maxMistakesTo
-                                        ? mistakeImages[mistakeIndex - 1]
-                                        : Text(''),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Spacer(),
-                        Text(_replaceChar(),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.subtitle1),
-                        Spacer(),
-                        Container(
-                          child: Column(
-                            children: <Widget>[
-                              ..._alphabet.map((row) => Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: <Widget>[
-                                      ...row.split('').map((char) => _getButton(
-                                          char,
-                                          Text(
-                                            char.toString().toUpperCase(),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .button
-                                                .copyWith(
-                                                  color: _wrongLetters
-                                                          .contains(char)
-                                                      ? Theme.of(context)
-                                                          .accentColor
-                                                      : (_usedLetters
-                                                              .contains(char)
-                                                          ? Colors.grey
-                                                          : null),
-                                                  decoration: _usedLetters
-                                                          .contains(char)
-                                                      ? TextDecoration
-                                                          .lineThrough
-                                                      : TextDecoration.none,
-                                                ),
-                                          ),
-                                          () => _checkLetter(char)))
-                                    ],
-                                  ))
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
+            snapshot.hasData && isKeywordListOk
+                ? gameView()
                 : CircularProgressIndicator(),
       )),
     );
@@ -168,14 +116,19 @@ class _GameState extends State<Game> {
     }
   }
 
+  // Result check
   void _onCorrect() {
     if (_replaceChar() == keyword) {
       _setGameOver(true);
       print("You won");
       // TODO: Display message and then run _nextKeyword()
       _increaseWonGames();
-      _nextKeyword();
+      // _nextGame();
     }
+  }
+
+  bool isLost() {
+    return mistakeIndex == maxMistakes;
   }
 
   // Increase index and if reached the max allowed mistakes end the game and reset index
@@ -187,9 +140,8 @@ class _GameState extends State<Game> {
       }
     }
 
-    if (mistakeIndex == maxMistakes) {
+    if (isLost()) {
       _setGameOver(true);
-      _resetMistakeIndex();
     }
   }
 
@@ -197,24 +149,47 @@ class _GameState extends State<Game> {
     mistakeIndex++;
   }
 
+  void _resetMistakeIndex() {
+    mistakeIndex = 0;
+  }
+
   void _increaseWonGames() {
     wonGames++;
+  }
+
+  void _resetWonGames() {
+    wonGames = 0;
   }
 
   void _setGameOver(bool b) {
     gameOver = b;
   }
 
-  void _resetMistakeIndex() {
-    mistakeIndex = 0;
+  void _setIsKeywordListOk(bool b) {
+    isKeywordListOk = b;
   }
 
   void _increaseKeywordIndex() {
     keywordIndex++;
   }
 
+  void _resetKeywordIndex() {
+    keywordIndex = 0;
+  }
+
+  bool isKeywordIndexOk() {
+    return keywords.length > 0 && keywordIndex < keywords.length;
+  }
+
   void _selectKeyword() {
-    keyword = keywords[keywordIndex % keywords.length].toString().toUpperCase();
+    if (isKeywordIndexOk()) {
+      keyword = keywords[keywordIndex].toString().toUpperCase();
+
+      return;
+    }
+
+    // If for some reason select is not possible; run next game to update keywords;
+    _nextGame();
   }
 
   void _resetAlphabet() {
@@ -222,21 +197,8 @@ class _GameState extends State<Game> {
     _wrongLetters = [];
   }
 
-  void _nextKeyword() {
-    setState(() {
-      _resetMistakeIndex();
-      _increaseKeywordIndex();
-      _selectKeyword();
-      _setMaxMistakes();
-      _resetAlphabet();
-      _setGameOver(false);
-    });
-  }
-
   // Adjust maxMistakes based on number of unique characters in the headline
-  void _setMaxMistakes() {
-    print('Getting max for ' + keyword + ' ' + keywordIndex.toString());
-    final int factor = 2;
+  void _setMaxMistakes(int min, int max, int factor) {
     final String alphabetStr = _alphabet.join('');
     final int alphabetLen = alphabetStr.length;
 
@@ -248,46 +210,64 @@ class _GameState extends State<Game> {
         .where((char) => alphabetStr.contains(char.toUpperCase()))
         .length;
 
-    int maxUniqueN = alphabetLen - (_maxMistakesFrom * factor);
-    int minUniqueN = alphabetLen - (_maxMistakesTo * factor);
+    int maxUniqueN = alphabetLen - (min * factor);
+    int minUniqueN = alphabetLen - (max * factor);
 
     if (uniqueCharLen > maxUniqueN) {
-      _increaseKeywordIndex();
-      _nextKeyword();
-      print('SKIPPING ' + keyword + ' ' + uniqueCharLen.toString());
+      _nextGame();
       return;
     }
 
     maxMistakes = uniqueCharLen < minUniqueN
-        ? _maxMistakesTo
+        ? max
         : ((alphabetLen - uniqueCharLen) / factor).floor();
-    print(uniqueCharLen < minUniqueN
-        ? 'SHORT' + uniqueCharLen.toString()
-        : 'OK ' +
-            ((alphabetLen - uniqueCharLen) / factor).floor().toString() +
-            ' ' +
-            uniqueCharLen.toString() +
-            ' ' +
-            minUniqueN.toString() +
-            ' ' +
-            maxUniqueN.toString() +
-            alphabetLen.toString());
   }
 
-  getHeadlines() {
-    setState(() {
-      _handleResponse();
-    });
-  }
-
-  void _handleResponse() {
+  void _updateKeywords() {
     setState(() {
       _data.then((headlines) {
-        keywords = [...keywords, ...headlines.map((e) => e.headline).toList()];
+        keywords = headlines.map((e) => e.headline).toList();
+        _setIsKeywordListOk(true);
+        _nextGame();
       });
     });
   }
 
+  // Game state
+  void _nextGame({bool reset = false}) {
+    if (isKeywordListOk && !isKeywordIndexOk()) {
+      setState(() {
+        _setIsKeywordListOk(false);
+      });
+    }
+
+    // Fetch new data and prevent from continuing.
+    // The fetch method runs _nextGame() again once data is updated
+    if (!isKeywordListOk) {
+      _updateKeywords();
+      return;
+    }
+
+    // Set next game state, if data does not need to be updated yet
+    _setNextGameState(reset: reset);
+  }
+
+  void _setNextGameState({bool reset = false}) {
+    setState(() {
+      _resetAlphabet();
+      _increaseKeywordIndex();
+      _selectKeyword();
+      _resetMistakeIndex();
+      _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
+      _setGameOver(false);
+
+      if (reset) {
+        _resetWonGames();
+      }
+    });
+  }
+
+  // User Interface components
   _getButton(String char, Text text, void Function() onPressed) =>
       _usedLetters.contains(char)
           ? OutlinedButton(
@@ -298,4 +278,116 @@ class _GameState extends State<Game> {
               onPressed: onPressed,
               child: text,
             );
+
+  Widget gameView() {
+    GameOverDisplay gameOverDisplay = GameOverDisplay(
+      won: GameOverDisplayData(
+          message: 'You Won! ;-)',
+          buttonText: 'Next Game',
+          onPressed: () => _nextGame(reset: false)),
+      lost: GameOverDisplayData(
+          message: 'You Lost! ;-(',
+          buttonText: 'Start New Game',
+          onPressed: () => _nextGame(reset: true)),
+    );
+
+    GameOverDisplayData gameOverDisplayData =
+        isLost() ? gameOverDisplay.lost : gameOverDisplay.won;
+
+    return Padding(
+      padding: const EdgeInsets.only(
+          top: 60.0, left: 20.0, right: 20.0, bottom: 40.0),
+      child: Stack(
+        children: [
+          Column(
+            children: <Widget>[
+              Column(
+                children: [
+                  Text('Won games: $wonGames'),
+                  Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20.0),
+                    child: Container(
+                      height: 120,
+                      width: 120,
+                      child: Stack(
+                        children: <Widget>[
+                          mistakeIndex > 0 && mistakeIndex <= maxMistakes
+                              ? mistakeImages[0]
+                              : Text(''),
+                          mistakeIndex > 1 && mistakeIndex <= maxMistakes
+                              ? mistakeImages[mistakeIndex - 1]
+                              : Text(''),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Spacer(),
+              Text(_replaceChar(),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.subtitle1),
+              Spacer(),
+              Container(
+                child: Column(
+                  children: <Widget>[
+                    ..._alphabet.map((row) => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            ...row.split('').map((char) => _getButton(
+                                char,
+                                Text(
+                                  char.toString().toUpperCase(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .button
+                                      .copyWith(
+                                        color: _wrongLetters.contains(char)
+                                            ? Theme.of(context).accentColor
+                                            : (_usedLetters.contains(char)
+                                                ? Colors.grey
+                                                : null),
+                                        decoration: _usedLetters.contains(char)
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
+                                ),
+                                () => _checkLetter(char)))
+                          ],
+                        ))
+                  ],
+                ),
+              ),
+            ],
+          ),
+          gameOver
+              ? Center(
+                  child: Column(children: [
+                    Spacer(),
+                    Container(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                gameOverDisplayData.message,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              ElevatedButton(
+                                  onPressed: gameOverDisplayData.onPressed,
+                                  child: Text(gameOverDisplayData.buttonText))
+                            ],
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                          ),
+                        ),
+                        color: Colors.black),
+                  ]),
+                )
+              : Text('')
+        ],
+      ),
+    );
+  }
 }
