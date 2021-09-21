@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hangman/settings/storage.dart';
 
 import 'game.dart';
 
@@ -86,7 +87,7 @@ class _HomeState extends State<Home> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => Game()));
+            builder: (context) => Game(storage: GameStorage())));
   }
 
   _onLeaderboard() {

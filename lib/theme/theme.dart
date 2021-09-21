@@ -50,48 +50,48 @@ ElevatedButtonThemeData _appElevatedButtonTheme() => ElevatedButtonThemeData(
 TextTheme _appTextTheme(TextTheme base) => base
     .copyWith(
       // Headlines
-      headline1: base.headline1.copyWith(
+      headline1: base.headline1?.copyWith(
         fontSize: 95.37,
       ),
-      headline2: base.headline2.copyWith(
+      headline2: base.headline2?.copyWith(
         fontSize: 76.29,
       ),
-      headline3: base.headline3.copyWith(
+      headline3: base.headline3?.copyWith(
         fontSize: 61.04,
       ),
-      headline4: base.headline4.copyWith(
+      headline4: base.headline4?.copyWith(
         fontSize: 48.83,
       ),
-      headline5: base.headline5.copyWith(
+      headline5: base.headline5?.copyWith(
         fontSize: 39.06,
       ),
-      headline6: base.headline6.copyWith(
+      headline6: base.headline6?.copyWith(
         fontSize: 31.25,
       ),
       // Subtitles
-      subtitle1: base.subtitle1.copyWith(
+      subtitle1: base.subtitle1?.copyWith(
         fontSize: 25.0,
       ),
-      subtitle2: base.subtitle2.copyWith(
+      subtitle2: base.subtitle2?.copyWith(
         fontSize: 20.0,
       ),
       // Body
-      bodyText1: base.bodyText1.copyWith(
+      bodyText1: base.bodyText1?.copyWith(
         fontSize: 20.0,
       ),
-      bodyText2: base.bodyText2.copyWith(
+      bodyText2: base.bodyText2?.copyWith(
         fontSize: 20.0,
       ),
       // Caption
-      caption: base.caption.copyWith(
+      caption: base.caption?.copyWith(
         fontSize: 16.0,
       ),
       // Overline
-      overline: base.overline.copyWith(
+      overline: base.overline?.copyWith(
         fontSize: 12.8,
       ),
       // Button
-      button: base.button.copyWith(
+      button: base.button?.copyWith(
         // letterSpacing: 3.0,
         fontSize: 25.0,
         color: Colors.white

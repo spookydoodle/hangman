@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
+import 'package:hangman/settings/storage.dart';
 import 'package:hangman/ui/home.dart';
 
 class Range {
@@ -14,21 +16,30 @@ class Range {
 }
 
 class GameOverDisplayData {
-  String message;
-  String buttonText;
-  Function onPressed;
+  final String message;
+  final String buttonText;
+  final void Function() onPressed;
 
-  GameOverDisplayData({this.message, this.buttonText, this.onPressed});
+  const GameOverDisplayData(
+      {required this.message,
+      required this.buttonText,
+      required this.onPressed});
 }
 
 class GameOverDisplay {
-  GameOverDisplayData won;
-  GameOverDisplayData lost;
+  final GameOverDisplayData won;
+  final GameOverDisplayData lost;
 
-  GameOverDisplay({this.won, this.lost});
+  GameOverDisplay({required this.won, required this.lost});
 }
 
 class Game extends StatefulWidget {
+  const Game({Key? key, required this.storage}) : super(key: key);
+
+  // const Game({Key? key, required this.storage}) : super(key: key);
+
+  final GameStorage storage;
+
   @override
   _GameState createState() => _GameState();
 }
@@ -54,20 +65,21 @@ class _GameState extends State<Game> {
   // category = { general, business, sport, entertainment, health, science
   // lang = { en (gb), en (us), de, nl, pl }
   // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
-  Future<List<HeadlineModel>> _data;
+  Future<List<HeadlineModel>> _data =
+      HeadlineNetwork().getHeadlines(getPage: () => 1);
 
   // List keywords = [];
   List<HeadlineModel> keywords = [];
 
   int page = 1;
   int keywordIndex = -1;
-  String keyword;
-  int maxMistakes;
+  String keyword = "";
+  String replacedKeyword = "";
+  int maxMistakes = 7;
   int wonGames = 0;
   int mistakeIndex = 0;
+  bool play = true;
   bool gameOver = false;
-
-  // Play to be set to false when insufficient keywords list (requires data fetch)
   bool isKeywordListOk = false;
 
   @override
@@ -75,13 +87,19 @@ class _GameState extends State<Game> {
     super.initState();
     _data = HeadlineNetwork().getHeadlines(getPage: getPage);
     _nextGame();
-  }
 
-  getPage() => page;
+    // TODO: Move to appropriate method
+    widget.storage.readHeadlineIds().then((String value) {
+      print('Value is: ');
+      value.split(';').toSet().toList().where((headlineId) => headlineId != '').forEach((headlineId) {
+        print(headlineId);
+        Memory.processedIds.add(int.tryParse(headlineId) ?? 1);
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // print('NEW GAME ' + maxMistakes.toString());
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -100,11 +118,14 @@ class _GameState extends State<Game> {
     );
   }
 
+  getPage() => page;
+
   String _replaceChar() {
     var keywordCopy = [...keyword.split('')].join('').toUpperCase();
     _alphabet.join('').split('').forEach((char) {
       if (!_usedLetters.contains(char)) {
-        keywordCopy = keywordCopy.replaceAll(char, '_');
+        keywordCopy =
+            gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
       }
     });
 
@@ -112,46 +133,42 @@ class _GameState extends State<Game> {
   }
 
   void _checkLetter(String char) {
-    if (!gameOver) {
-      setState(() {
-        _usedLetters.add(char);
-      });
-    }
+    setState(() {
+      _usedLetters.add(char);
 
-    if (keyword.contains(char)) {
-      _onCorrect();
-    } else {
-      _onMistake(char);
-    }
+      if (keyword.contains(char)) {
+        _onCorrect();
+      } else {
+        _onMistake(char);
+      }
+    });
   }
 
   // Result check
   void _onCorrect() {
-    if (_replaceChar() == keyword) {
-      _setGameOver(true);
-      print("You won");
-      // TODO: Display message and then run _nextKeyword()
-      _increaseWonGames();
-      // _nextGame();
-    }
-  }
+    replacedKeyword = _replaceChar();
 
-  bool isLost() {
-    return mistakeIndex == maxMistakes;
+    if (replacedKeyword == keyword) {
+      _setPlay(false);
+      _increaseWonGames();
+    }
   }
 
   // Increase index and if reached the max allowed mistakes end the game and reset index
   void _onMistake(String char) {
-    if (!gameOver) {
-      if (!_wrongLetters.contains(char)) {
-        _wrongLetters.add(char);
-        _increaseMistakeIndex();
-      }
+    if (!_wrongLetters.contains(char)) {
+      _wrongLetters.add(char);
+      _increaseMistakeIndex();
+      _setGameOver(mistakeIndex == maxMistakes);
     }
 
-    if (isLost()) {
-      _setGameOver(true);
+    if (gameOver) {
+      _setPlay(false);
     }
+  }
+
+  void _setGameOver(bool b) {
+    gameOver = b;
   }
 
   void _increaseMistakeIndex() {
@@ -170,8 +187,8 @@ class _GameState extends State<Game> {
     wonGames = 0;
   }
 
-  void _setGameOver(bool b) {
-    gameOver = b;
+  void _setPlay(bool b) {
+    play = b;
   }
 
   void _setIsKeywordListOk(bool b) {
@@ -199,7 +216,13 @@ class _GameState extends State<Game> {
       HeadlineModel headline = keywords[keywordIndex];
       keyword = headline.headline.toString().toUpperCase();
       Memory.processedIds.add(headline.id);
-      print('Processed IDs');
+      widget.storage.writeHeadline(headline.id.toString());
+      // TODO: delete this
+      print('PRINTING FILE');
+
+      print('END OF PRINTING FILE');
+      //
+      print('Processed IDs:');
       print(Memory.processedIds);
 
       return;
@@ -245,7 +268,9 @@ class _GameState extends State<Game> {
       _data.then((headlines) {
         _increasePageIndex();
 
-        keywords = headlines.where((headline) => !Memory.processedIds.contains(headline.id)).toList();
+        keywords = headlines
+            .where((headline) => !Memory.processedIds.contains(headline.id))
+            .toList();
         print(keywords.length.toString());
 
         // TODO: replace with a method returning if keyword list is ok
@@ -283,9 +308,10 @@ class _GameState extends State<Game> {
       _selectKeyword();
       _resetMistakeIndex();
       _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
-      _setGameOver(false);
+      _setPlay(true);
 
       if (reset) {
+        _setGameOver(false);
         _resetWonGames();
       }
     });
@@ -316,7 +342,7 @@ class _GameState extends State<Game> {
     );
 
     GameOverDisplayData gameOverDisplayData =
-        isLost() ? gameOverDisplay.lost : gameOverDisplay.won;
+        gameOver ? gameOverDisplay.lost : gameOverDisplay.won;
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -366,7 +392,7 @@ class _GameState extends State<Game> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .button
-                                      .copyWith(
+                                      ?.copyWith(
                                         color: _wrongLetters.contains(char)
                                             ? Theme.of(context).accentColor
                                             : (_usedLetters.contains(char)
@@ -385,32 +411,30 @@ class _GameState extends State<Game> {
               ),
             ],
           ),
-          gameOver
-              ? Center(
-                  child: Column(children: [
-                    Spacer(),
-                    Container(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                gameOverDisplayData.message,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              ElevatedButton(
-                                  onPressed: gameOverDisplayData.onPressed,
-                                  child: Text(gameOverDisplayData.buttonText))
-                            ],
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+          if (!play)
+            Center(
+              child: Column(children: [
+                Spacer(),
+                Container(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            gameOverDisplayData.message,
+                            style: TextStyle(color: Colors.white),
                           ),
-                        ),
-                        color: Colors.black),
-                  ]),
-                )
-              // TODO: handle display only if game over
-              : Text('')
+                          ElevatedButton(
+                              onPressed: gameOverDisplayData.onPressed,
+                              child: Text(gameOverDisplayData.buttonText))
+                        ],
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                      ),
+                    ),
+                    color: Colors.black),
+              ]),
+            ),
         ],
       ),
     );
@@ -418,9 +442,6 @@ class _GameState extends State<Game> {
 
   // TODO: Make a generic util function
   _onHome() {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => Home()));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
   }
 }

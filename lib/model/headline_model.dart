@@ -1,24 +1,24 @@
 class HeadlineModel {
-  int id;
-  String category;
-  String country;
-  String lang;
-  String headline;
-  String provider;
-  String url;
-  String age;
-  String timestamp;
+  int id = 0;
+  String category = "";
+  String country = "";
+  String lang = "";
+  String headline = "";
+  String provider = "";
+  String url = "";
+  String age = "";
+  String timestamp = "";
 
   HeadlineModel(
-      {this.id,
-      this.category,
-      this.country,
-      this.lang,
-      this.headline,
-      this.provider,
-      this.url,
-      this.age,
-      this.timestamp});
+      {required this.id,
+      required this.category,
+      required this.country,
+      required this.lang,
+      required this.headline,
+      required this.provider,
+      required this.url,
+      required this.age,
+      required this.timestamp});
 
   HeadlineModel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
