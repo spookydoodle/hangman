@@ -1,13 +1,24 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
+import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/storage.dart';
 import 'package:hangman/ui/home.dart';
 
+// TODO:
+// CustomScrollView(
+//   slivers: <Widget>SliverAppBar(
+//     title: Text('Sliver App Bar'),
+//     expandedHeight: 200.0
+//     flexibleSpace: FlexibleSpaceBar(
+//       background: _image,
+//     ),
+//      floating: true
+//   )
+// )
 class Range {
   final int min;
   final int max;
@@ -38,14 +49,14 @@ class Game extends StatefulWidget {
 
   // const Game({Key? key, required this.storage}) : super(key: key);
 
-  final GameStorage storage;
+  final FileManager storage;
 
   @override
   _GameState createState() => _GameState();
 }
 
 class _GameState extends State<Game> {
-  final List _alphabet = ['ABCDEFG', 'HIJKLMN', 'OPQRSTU', 'VWXYZ'];
+  final String _alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   List _usedLetters = [];
   List _wrongLetters = [];
 
@@ -66,7 +77,7 @@ class _GameState extends State<Game> {
   // lang = { en (gb), en (us), de, nl, pl }
   // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
   Future<List<HeadlineModel>> _data =
-      HeadlineNetwork().getHeadlines(getPage: () => 1);
+      HeadlineNetwork().getHeadlines();
 
   // List keywords = [];
   List<HeadlineModel> keywords = [];
@@ -85,7 +96,7 @@ class _GameState extends State<Game> {
   @override
   void initState() {
     super.initState();
-    _data = HeadlineNetwork().getHeadlines(getPage: getPage);
+    _data = HeadlineNetwork().getHeadlines();
     _nextGame();
 
     // TODO: Move to appropriate method
@@ -104,7 +115,26 @@ class _GameState extends State<Game> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0.0,
-        actions: [ElevatedButton(onPressed: _onHome, child: Text('Home'))],
+        actions: [
+          IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: _onHome,
+            color: Theme.of(context).accentColor,
+            splashRadius: 20.0,
+          ),
+          Spacer(),
+          Hero(
+            tag: 'hero-avatar',
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 25,
+              child: Padding(
+                padding: const EdgeInsets.all(5.0),
+                child: Image.asset('images/doodle-1/main.png'),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Center(
           child: FutureBuilder<List<HeadlineModel>>(
@@ -118,11 +148,9 @@ class _GameState extends State<Game> {
     );
   }
 
-  getPage() => page;
-
   String _replaceChar() {
     var keywordCopy = [...keyword.split('')].join('').toUpperCase();
-    _alphabet.join('').split('').forEach((char) {
+    _alphabet.split('').forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
             gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
@@ -200,7 +228,7 @@ class _GameState extends State<Game> {
   }
 
   void _increasePageIndex() {
-    page++;
+    Settings.page++;
   }
 
   void _resetKeywordIndex() {
@@ -217,13 +245,12 @@ class _GameState extends State<Game> {
       keyword = headline.headline.toString().toUpperCase();
       Memory.processedIds.add(headline.id);
       widget.storage.writeHeadline(headline.id.toString());
-      // TODO: delete this
-      print('PRINTING FILE');
 
-      print('END OF PRINTING FILE');
-      //
-      print('Processed IDs:');
-      print(Memory.processedIds);
+      if (keyword.length > 65) {
+        print('SKIPPED');
+        print(keyword);
+        _nextGame();
+      }
 
       return;
     }
@@ -239,7 +266,7 @@ class _GameState extends State<Game> {
 
   // Adjust maxMistakes based on number of unique characters in the headline
   void _setMaxMistakes(int min, int max, int factor) {
-    final String alphabetStr = _alphabet.join('');
+    final String alphabetStr = _alphabet;
     final int alphabetLen = alphabetStr.length;
 
     int uniqueCharLen = keyword
@@ -271,7 +298,6 @@ class _GameState extends State<Game> {
         keywords = headlines
             .where((headline) => !Memory.processedIds.contains(headline.id))
             .toList();
-        print(keywords.length.toString());
 
         // TODO: replace with a method returning if keyword list is ok
         _setIsKeywordListOk(true);
@@ -349,6 +375,7 @@ class _GameState extends State<Game> {
           top: 20.0, left: 20.0, right: 20.0, bottom: 40.0),
       child: Stack(
         children: [
+          // TODO: On overflow scroll
           Column(
             children: <Widget>[
               Column(
@@ -379,35 +406,32 @@ class _GameState extends State<Game> {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.subtitle1),
               Spacer(),
-              Container(
-                child: Column(
-                  children: <Widget>[
-                    ..._alphabet.map((row) => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            ...row.split('').map((char) => _getButton(
-                                char,
-                                Text(
-                                  char.toString().toUpperCase(),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .button
-                                      ?.copyWith(
-                                        color: _wrongLetters.contains(char)
-                                            ? Theme.of(context).accentColor
-                                            : (_usedLetters.contains(char)
-                                                ? Colors.grey
-                                                : null),
-                                        decoration: _usedLetters.contains(char)
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
-                                ),
-                                () => _checkLetter(char)))
-                          ],
-                        ))
-                  ],
-                ),
+              // TODO: Consider Table widget
+              Wrap(
+                alignment: WrapAlignment.center,
+                direction: Axis.horizontal,
+                children: <Widget>[
+                  ..._alphabet.split('').map((char) => _getButton(
+                      char,
+                      Text(
+                        char.toString().toUpperCase(),
+                        style: Theme.of(context)
+                            .textTheme
+                            .button
+                            ?.copyWith(
+                          color: _wrongLetters.contains(char)
+                              ? Theme.of(context).accentColor
+                              : (_usedLetters.contains(char)
+                              ? Colors.grey
+                              : null),
+                          decoration: _usedLetters.contains(char)
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                      ),
+                          () => _checkLetter(char)
+                  ))
+                ],
               ),
             ],
           ),
@@ -440,8 +464,7 @@ class _GameState extends State<Game> {
     );
   }
 
-  // TODO: Make a generic util function
   _onHome() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
+    Navigator.pop(context);
   }
 }
