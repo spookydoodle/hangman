@@ -3,8 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/storage.dart';
+import 'package:hangman/ui/dropdown.dart';
 
-import 'game.dart';
+import './game.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -15,19 +16,16 @@ FileManager storage = FileManager();
 
 class _HomeState extends State<Home> {
   var name = 'Hangman:\nGuess The News';
-  String country = Settings.country;
-  String category = Settings.category;
+  Category category = Category.general;
+  Country country = Country.gb;
 
   @override
   void initState() {
     super.initState();
 
     storage.readJsonFile().then((value) {
-      print('PRINTING JSON');
-      Settings.category = value['category'];
-      Settings.country = value['country'];
-      print(Settings.category);
-      print(Settings.country);
+      Settings.category = getCategory(value['category']);
+      Settings.country = getCountry(value['country']);
 
       setState(() {
         country = Settings.country;
@@ -78,11 +76,11 @@ class _HomeState extends State<Home> {
               children: [
                 Dropdown(
                     items: ['general', 'business', 'entertainment', 'science', 'health', 'sport'],
-                    value: category,
+                    value: category.toString().split('.').last,
                     onSelect: _updateCategory),
                 Dropdown(
                     items: ['gb', 'us', 'de', 'nl', 'pl'],
-                    value: country,
+                    value: country.toString().split('.').last,
                     onSelect: _updateCountry),
               ],
             ),
@@ -104,13 +102,13 @@ class _HomeState extends State<Home> {
   }
 
   void _updateCategory(String val) {
-    Settings.category = val;
-    storage.writeJsonFile(val, Settings.country);
+    Settings.category = getCategory(val);
+    storage.writeJsonFile(val, Settings.country.toString().split('.').last);
   }
 
   void _updateCountry(String val) {
-    Settings.country = val;
-    storage.writeJsonFile(Settings.category, val);
+    Settings.country = getCountry(val);
+    storage.writeJsonFile(Settings.category.toString().split('.').last, val);
   }
 
   Widget navButton(String name, onPressed) => SizedBox(
@@ -136,46 +134,4 @@ class _HomeState extends State<Home> {
   _onLeaderboard() {}
 
   _onExit() {}
-}
-
-/// This is the stateful widget that the main application instantiates.
-class Dropdown extends StatefulWidget {
-  Dropdown(
-      {Key? key,
-      required this.items,
-      required this.value,
-      required this.onSelect})
-      : super(key: key);
-
-  final List<String> items;
-  String value;
-  final void Function(String) onSelect;
-
-  @override
-  State<Dropdown> createState() => _DropdownState();
-}
-
-/// This is the private State class that goes with MyStatefulWidget.
-class _DropdownState extends State<Dropdown> {
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<String>(
-      value: widget.value,
-      iconSize: 24,
-      elevation: 16,
-      style: Theme.of(context).textTheme.bodyText2,
-      onChanged: (String? newValue) {
-        setState(() {
-          widget.value = newValue!;
-          widget.onSelect(newValue);
-        });
-      },
-      items: widget.items.map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-    );
-  }
 }

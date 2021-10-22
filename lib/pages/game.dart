@@ -3,51 +3,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hangman/model/headline_model.dart';
 import 'package:hangman/network/network.dart';
+import 'package:hangman/pages/model.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/storage.dart';
-import 'package:hangman/ui/home.dart';
 
-// TODO:
-// CustomScrollView(
-//   slivers: <Widget>SliverAppBar(
-//     title: Text('Sliver App Bar'),
-//     expandedHeight: 200.0
-//     flexibleSpace: FlexibleSpaceBar(
-//       background: _image,
-//     ),
-//      floating: true
-//   )
-// )
-class Range {
-  final int min;
-  final int max;
-
-  Range(this.min, this.max);
-}
-
-class GameOverDisplayData {
-  final String message;
-  final String buttonText;
-  final void Function() onPressed;
-
-  const GameOverDisplayData(
-      {required this.message,
-      required this.buttonText,
-      required this.onPressed});
-}
-
-class GameOverDisplay {
-  final GameOverDisplayData won;
-  final GameOverDisplayData lost;
-
-  GameOverDisplay({required this.won, required this.lost});
-}
-
+// Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
   const Game({Key? key, required this.storage}) : super(key: key);
-
-  // const Game({Key? key, required this.storage}) : super(key: key);
 
   final FileManager storage;
 
@@ -56,7 +19,7 @@ class Game extends StatefulWidget {
 }
 
 class _GameState extends State<Game> {
-  final String _alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  String _alphabet = '';
   List _usedLetters = [];
   List _wrongLetters = [];
 
@@ -72,41 +35,29 @@ class _GameState extends State<Game> {
     Image.asset('images/doodle-1/wrong_6.png'),
   ];
 
-  // Get from https://felidae.spookydoodle.com/news/${category}?lang=${lang}&sortBy=timestamp desc&page=${page}
-  // category = { general, business, sport, entertainment, health, science
-  // lang = { en (gb), en (us), de, nl, pl }
-  // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
-  Future<List<HeadlineModel>> _data =
-      HeadlineNetwork().getHeadlines();
+  Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines();
 
   // List keywords = [];
   List<HeadlineModel> keywords = [];
 
-  int page = 1;
   int keywordIndex = -1;
   String keyword = "";
   String replacedKeyword = "";
   int maxMistakes = 7;
   int wonGames = 0;
   int mistakeIndex = 0;
-  bool play = true;
   bool gameOver = false;
-  bool isKeywordListOk = false;
+  bool gameWon = false;
+
+  int fetchAttempt = 0;
 
   @override
   void initState() {
     super.initState();
-    _data = HeadlineNetwork().getHeadlines();
+    Settings.page = 1;
+    _copyProcessedIdsToMemory();
+    _alphabet = getAlphabet(Settings.country);
     _nextGame();
-
-    // TODO: Move to appropriate method
-    widget.storage.readHeadlineIds().then((String value) {
-      print('Value is: ');
-      value.split(';').toSet().toList().where((headlineId) => headlineId != '').forEach((headlineId) {
-        print(headlineId);
-        Memory.processedIds.add(int.tryParse(headlineId) ?? 1);
-      });
-    });
   }
 
   @override
@@ -141,11 +92,29 @@ class _GameState extends State<Game> {
         future: _data,
         builder: (BuildContext context,
                 AsyncSnapshot<List<HeadlineModel>> snapshot) =>
-            snapshot.hasData && isKeywordListOk
+            snapshot.hasData && !_needsKeywordUpdate()
                 ? gameView()
                 : CircularProgressIndicator(),
       )),
     );
+  }
+
+  void _copyProcessedIdsToMemory() {
+    widget.storage.readHeadlineIds().then((String value) {
+      value
+          .split(';')
+          .toSet()
+          .toList()
+          .where((headlineId) => headlineId != '')
+          .forEach((headlineId) {
+        Memory.processedIds.add(int.tryParse(headlineId) ?? 1);
+      });
+    });
+  }
+
+  bool _needsKeywordUpdate() {
+    var len = keywords.length;
+    return len == 0 || keywordIndex >= len;
   }
 
   String _replaceChar() {
@@ -161,15 +130,17 @@ class _GameState extends State<Game> {
   }
 
   void _checkLetter(String char) {
-    setState(() {
-      _usedLetters.add(char);
+    if (!gameOver && !gameWon) {
+      setState(() {
+        _usedLetters.add(char);
 
-      if (keyword.contains(char)) {
-        _onCorrect();
-      } else {
-        _onMistake(char);
-      }
-    });
+        if (keyword.contains(char)) {
+          _onCorrect();
+        } else {
+          _onMistake(char);
+        }
+      });
+    }
   }
 
   // Result check
@@ -177,7 +148,7 @@ class _GameState extends State<Game> {
     replacedKeyword = _replaceChar();
 
     if (replacedKeyword == keyword) {
-      _setPlay(false);
+      _setGameWon(true);
       _increaseWonGames();
     }
   }
@@ -188,10 +159,6 @@ class _GameState extends State<Game> {
       _wrongLetters.add(char);
       _increaseMistakeIndex();
       _setGameOver(mistakeIndex == maxMistakes);
-    }
-
-    if (gameOver) {
-      _setPlay(false);
     }
   }
 
@@ -207,20 +174,16 @@ class _GameState extends State<Game> {
     mistakeIndex = 0;
   }
 
+  void _setGameWon(bool b) {
+    gameWon = b;
+  }
+
   void _increaseWonGames() {
     wonGames++;
   }
 
   void _resetWonGames() {
     wonGames = 0;
-  }
-
-  void _setPlay(bool b) {
-    play = b;
-  }
-
-  void _setIsKeywordListOk(bool b) {
-    isKeywordListOk = b;
   }
 
   void _increaseKeywordIndex() {
@@ -232,23 +195,21 @@ class _GameState extends State<Game> {
   }
 
   void _resetKeywordIndex() {
-    keywordIndex = 0;
+    keywordIndex = -1;
   }
 
-  bool isKeywordIndexOk() {
-    return keywords.length > 0 && keywordIndex < keywords.length;
+  void _setKeywords(List<HeadlineModel> newKeywords) {
+    keywords = newKeywords;
   }
 
   void _selectKeyword() {
-    if (isKeywordIndexOk()) {
+    if (!_needsKeywordUpdate()) {
       HeadlineModel headline = keywords[keywordIndex];
       keyword = headline.headline.toString().toUpperCase();
       Memory.processedIds.add(headline.id);
       widget.storage.writeHeadline(headline.id.toString());
 
       if (keyword.length > 65) {
-        print('SKIPPED');
-        print(keyword);
         _nextGame();
       }
 
@@ -282,6 +243,7 @@ class _GameState extends State<Game> {
 
     if (uniqueCharLen > maxUniqueN) {
       _nextGame();
+
       return;
     }
 
@@ -291,56 +253,83 @@ class _GameState extends State<Game> {
   }
 
   void _updateKeywords() {
-    setState(() {
+    print('UPDATING KEYWORDS');
+    print('FETCH ATTEMPT NR:');
+    print(fetchAttempt);
+    if (fetchAttempt < 3) {
       _data.then((headlines) {
-        _increasePageIndex();
-
-        keywords = headlines
+        var newKeywords = headlines
             .where((headline) => !Memory.processedIds.contains(headline.id))
             .toList();
 
-        // TODO: replace with a method returning if keyword list is ok
-        _setIsKeywordListOk(true);
-        _resetKeywordIndex();
+        print('NEW KEYWORDS LEN:');
+        print(newKeywords.length);
+        setState(() {
+          if (newKeywords.length > 0) {
+            fetchAttempt = 0;
+          } else {
+            fetchAttempt++;
+          }
+
+          _increasePageIndex();
+          _resetKeywordIndex();
+          _setKeywords(newKeywords);
+        });
 
         _nextGame();
+      }).catchError((err) {
+        print('FETCH ERROR');
+        print(err);
       });
-    });
+    } else {
+      print('FETCH LIMIT EXCEEDED');
+    }
   }
 
-  // Game state
+  // Game state - increase index -> check if list needs to update -> run new game
   void _nextGame({bool reset = false}) {
-    if (isKeywordListOk && !isKeywordIndexOk()) {
-      setState(() {
-        _setIsKeywordListOk(false);
-      });
-    }
+    print('NEW GAME');
+    setState(() {
+      print('NEW GAME - Increase Keyword Index');
+      print(keywordIndex);
+
+      _increaseKeywordIndex();
+
+      print(keywordIndex);
+      print('KEYWORD INDEX INCREASED');
+    });
 
     // Fetch new data and prevent from continuing.
     // The fetch method runs _nextGame() again once data is updated
-    if (!isKeywordListOk) {
+    if (keywords.length == 0 || keywordIndex >= keywords.length) {
+      print('NEEDS KEYWORD UPDATE');
+      print(keywords.length);
+      print(keywordIndex);
       _updateKeywords();
+
       return;
     }
 
     // Set next game state, if data does not need to be updated yet
+    print('SETTING NEXT GAME STATE');
     _setNextGameState(reset: reset);
   }
 
   void _setNextGameState({bool reset = false}) {
-    setState(() {
-      _resetAlphabet();
-      _increaseKeywordIndex();
-      _selectKeyword();
-      _resetMistakeIndex();
-      _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
-      _setPlay(true);
+    if (!_needsKeywordUpdate()) {
+      setState(() {
+        _resetAlphabet();
+        _selectKeyword();
+        _resetMistakeIndex();
+        _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
 
-      if (reset) {
-        _setGameOver(false);
-        _resetWonGames();
-      }
-    });
+        if (reset) {
+          _setGameOver(false);
+          _setGameWon(false);
+          _resetWonGames();
+        }
+      });
+    }
   }
 
   // User Interface components
@@ -415,27 +404,23 @@ class _GameState extends State<Game> {
                       char,
                       Text(
                         char.toString().toUpperCase(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .button
-                            ?.copyWith(
-                          color: _wrongLetters.contains(char)
-                              ? Theme.of(context).accentColor
-                              : (_usedLetters.contains(char)
-                              ? Colors.grey
-                              : null),
-                          decoration: _usedLetters.contains(char)
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
+                        style: Theme.of(context).textTheme.button?.copyWith(
+                              color: _wrongLetters.contains(char)
+                                  ? Theme.of(context).accentColor
+                                  : (_usedLetters.contains(char)
+                                      ? Colors.grey
+                                      : null),
+                              decoration: _usedLetters.contains(char)
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
                       ),
-                          () => _checkLetter(char)
-                  ))
+                      () => _checkLetter(char)))
                 ],
               ),
             ],
           ),
-          if (!play)
+          if (gameOver || gameWon)
             Center(
               child: Column(children: [
                 Spacer(),

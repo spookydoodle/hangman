@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hangman/controller/file_controller.dart';
+import 'package:hangman/pages/home.dart';
 import 'package:hangman/theme/theme.dart';
-import 'package:hangman/ui/home.dart';
 import 'package:provider/provider.dart';
 
 

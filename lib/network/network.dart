@@ -9,12 +9,16 @@ import 'package:http/http.dart';
 // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
 class HeadlineNetwork {
   Future<List<HeadlineModel>> getHeadlines() async {
-    var baseUrl = 'https://felidae.spookydoodle.com/news/${Settings.category}';
-    var query = 'cc=${Settings.country}&sortBy=timestamp desc&page=${Settings.page}';
-    var finalUrl = '${baseUrl}?${query}';
+    var category = Settings.category.toString().split('.').last;
+    var cc = Settings.country.toString().split('.').last;
+    var page = Settings.page;
 
-    final response = await get(Uri.parse(finalUrl));
+    var baseUrl = 'https://felidae.spookydoodle.com/news/$category';
+    var query = 'cc=$cc&sortBy=timestamp desc&page=$page';
+    var finalUrl = '$baseUrl?$query';
+
     print('URL: ${Uri.encodeFull(finalUrl)}');
+    final response = await get(Uri.parse(finalUrl));
 
     if (response.statusCode == 200) {
       List<dynamic> list = json.decode(response.body);
