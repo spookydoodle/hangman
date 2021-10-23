@@ -7,6 +7,7 @@ import 'package:hangman/pages/model.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/storage.dart';
+import 'package:hangman/ui/game.dart';
 
 // Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
@@ -19,21 +20,12 @@ class Game extends StatefulWidget {
 }
 
 class _GameState extends State<Game> {
-  String _alphabet = '';
-  List _usedLetters = [];
-  List _wrongLetters = [];
+  List<String> _alphabet = [];
+  List<String> _usedLetters = [];
+  List<String> _wrongLetters = [];
 
   final Range _maxMistakesRange = Range(3, 7);
 
-  final List mistakeImages = [
-    Image.asset('images/doodle-1/wrong_0.png'),
-    Image.asset('images/doodle-1/wrong_1.png'),
-    Image.asset('images/doodle-1/wrong_2.png'),
-    Image.asset('images/doodle-1/wrong_3.png'),
-    Image.asset('images/doodle-1/wrong_4.png'),
-    Image.asset('images/doodle-1/wrong_5.png'),
-    Image.asset('images/doodle-1/wrong_6.png'),
-  ];
 
   Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines();
 
@@ -56,7 +48,7 @@ class _GameState extends State<Game> {
     super.initState();
     Settings.page = 1;
     _copyProcessedIdsToMemory();
-    _alphabet = getAlphabet(Settings.country);
+    _alphabet = getAlphabet(Settings.country).split('').map((char) => char.toUpperCase());
     _nextGame();
   }
 
@@ -91,10 +83,34 @@ class _GameState extends State<Game> {
           child: FutureBuilder<List<HeadlineModel>>(
         future: _data,
         builder: (BuildContext context,
-                AsyncSnapshot<List<HeadlineModel>> snapshot) =>
-            snapshot.hasData && !_needsKeywordUpdate()
-                ? gameView()
-                : CircularProgressIndicator(),
+            AsyncSnapshot<List<HeadlineModel>> snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasError) {
+              return Text('Error while fetching data');
+            }
+
+            if (snapshot.hasData && !_needsKeywordUpdate()) {
+              return gameView(
+                context: context,
+                wonGames: wonGames,
+                maxMistakes: maxMistakes,
+                mistakeIndex: mistakeIndex,
+                keywordDisplay: _replaceChar(),
+                alphabet: _alphabet,
+                wrongLetters: _wrongLetters,
+                usedLetters: _usedLetters,
+                onLetterClick: _checkLetter,
+                gameOver: gameOver,
+                gameWon: gameWon,
+                next: _nextGame,
+              );
+            } else {
+              return Text('Could not find data or needs keywords list update.');
+            }
+          }
+
+          return CircularProgressIndicator();
+        },
       )),
     );
   }
@@ -119,7 +135,7 @@ class _GameState extends State<Game> {
 
   String _replaceChar() {
     var keywordCopy = [...keyword.split('')].join('').toUpperCase();
-    _alphabet.split('').forEach((char) {
+    _alphabet.forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
             gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
@@ -227,15 +243,14 @@ class _GameState extends State<Game> {
 
   // Adjust maxMistakes based on number of unique characters in the headline
   void _setMaxMistakes(int min, int max, int factor) {
-    final String alphabetStr = _alphabet;
-    final int alphabetLen = alphabetStr.length;
+    final int alphabetLen = _alphabet.length;
 
     int uniqueCharLen = keyword
         .replaceAll(' ', '')
         .split('')
         .toSet()
         .toList()
-        .where((char) => alphabetStr.contains(char.toUpperCase()))
+        .where((char) => _alphabet.contains(char.toUpperCase()))
         .length;
 
     int maxUniqueN = alphabetLen - (min * factor);
@@ -332,122 +347,7 @@ class _GameState extends State<Game> {
     }
   }
 
-  // User Interface components
-  _getButton(String char, Text text, void Function() onPressed) =>
-      _usedLetters.contains(char)
-          ? OutlinedButton(
-              onPressed: onPressed,
-              child: text,
-            )
-          : ElevatedButton(
-              onPressed: onPressed,
-              child: text,
-            );
 
-  Widget gameView() {
-    GameOverDisplay gameOverDisplay = GameOverDisplay(
-      won: GameOverDisplayData(
-          message: 'You Won! ;-)',
-          buttonText: 'Next Game',
-          onPressed: () => _nextGame(reset: false)),
-      lost: GameOverDisplayData(
-          message: 'You Lost! ;-(',
-          buttonText: 'Start New Game',
-          onPressed: () => _nextGame(reset: true)),
-    );
-
-    GameOverDisplayData gameOverDisplayData =
-        gameOver ? gameOverDisplay.lost : gameOverDisplay.won;
-
-    return Padding(
-      padding: const EdgeInsets.only(
-          top: 20.0, left: 20.0, right: 20.0, bottom: 40.0),
-      child: Stack(
-        children: [
-          // TODO: On overflow scroll
-          Column(
-            children: <Widget>[
-              Column(
-                children: [
-                  Text('Won games: $wonGames'),
-                  Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0),
-                    child: Container(
-                      height: 120,
-                      width: 120,
-                      child: Stack(
-                        children: <Widget>[
-                          mistakeIndex > 0 && mistakeIndex <= maxMistakes
-                              ? mistakeImages[0]
-                              : Text(''),
-                          mistakeIndex > 1 && mistakeIndex <= maxMistakes
-                              ? mistakeImages[mistakeIndex - 1]
-                              : Text(''),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Spacer(),
-              Text(_replaceChar(),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.subtitle1),
-              Spacer(),
-              // TODO: Consider Table widget
-              Wrap(
-                alignment: WrapAlignment.center,
-                direction: Axis.horizontal,
-                children: <Widget>[
-                  ..._alphabet.split('').map((char) => _getButton(
-                      char,
-                      Text(
-                        char.toString().toUpperCase(),
-                        style: Theme.of(context).textTheme.button?.copyWith(
-                              color: _wrongLetters.contains(char)
-                                  ? Theme.of(context).accentColor
-                                  : (_usedLetters.contains(char)
-                                      ? Colors.grey
-                                      : null),
-                              decoration: _usedLetters.contains(char)
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            ),
-                      ),
-                      () => _checkLetter(char)))
-                ],
-              ),
-            ],
-          ),
-          if (gameOver || gameWon)
-            Center(
-              child: Column(children: [
-                Spacer(),
-                Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          Text(
-                            gameOverDisplayData.message,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          ElevatedButton(
-                              onPressed: gameOverDisplayData.onPressed,
-                              child: Text(gameOverDisplayData.buttonText))
-                        ],
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                      ),
-                    ),
-                    color: Colors.black),
-              ]),
-            ),
-        ],
-      ),
-    );
-  }
 
   _onHome() {
     Navigator.pop(context);
