@@ -64,7 +64,7 @@ class _HomeState extends State<Home> {
         children: <Widget>[
           hero(),
           title(),
-          gameSelection(),
+          selectors(),
           menuButtons(),
         ],
       ),
@@ -93,7 +93,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget gameSelection() {
+  Widget selectors() {
     void _updateCategory(String val) {
       Settings.category = getCategory(val);
       storage.writeJsonFile(val, Settings.country.toString().split('.').last);
