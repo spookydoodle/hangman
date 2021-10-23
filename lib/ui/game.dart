@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:hangman/pages/model.dart';
 
 // User Interface components
 //_usedLetters.contains(char)

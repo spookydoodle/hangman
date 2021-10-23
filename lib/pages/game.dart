@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:hangman/model/headline_model.dart';
+
+import 'package:hangman/files/storage.dart';
+import 'package:hangman/model/common.dart';
+import 'package:hangman/model/headline.dart';
 import 'package:hangman/network/network.dart';
-import 'package:hangman/pages/model.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
-import 'package:hangman/settings/storage.dart';
 import 'package:hangman/ui/game.dart';
 
 // Storage is used to save processed headline ID's in order not to display the same headline more than once
@@ -25,7 +27,6 @@ class _GameState extends State<Game> {
   List<String> _wrongLetters = [];
 
   final Range _maxMistakesRange = Range(3, 7);
-
 
   Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines();
 
@@ -48,7 +49,10 @@ class _GameState extends State<Game> {
     super.initState();
     Settings.page = 1;
     _copyProcessedIdsToMemory();
-    _alphabet = getAlphabet(Settings.country).split('').map((char) => char.toUpperCase());
+    _alphabet = getAlphabet(Settings.country)
+        .split('')
+        .map((char) => char.toUpperCase())
+        .toList();
     _nextGame();
   }
 
@@ -337,17 +341,15 @@ class _GameState extends State<Game> {
         _selectKeyword();
         _resetMistakeIndex();
         _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
+        _setGameWon(false);
 
         if (reset) {
           _setGameOver(false);
-          _setGameWon(false);
           _resetWonGames();
         }
       });
     }
   }
-
-
 
   _onHome() {
     Navigator.pop(context);

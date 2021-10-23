@@ -40,7 +40,7 @@ Country getCountry(String str) {
 
 enum Lang { english, german, polish, dutch }
 
-getLang(Country country) {
+String getLang(Country country) {
   switch (country) {
     case Country.gb:
       return 'English';
@@ -57,7 +57,7 @@ getLang(Country country) {
   }
 }
 
-getAlphabet(Country country) {
+String getAlphabet(Country country) {
   switch (country) {
     case Country.gb:
       return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

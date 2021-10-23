@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:hangman/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
 
 class FileManager {

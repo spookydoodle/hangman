@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:hangman/model/headline_model.dart';
+import 'package:hangman/model/headline.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:http/http.dart';
 

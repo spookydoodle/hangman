@@ -1,8 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:hangman/model/user.dart';
-import 'package:hangman/settings/storage.dart';
+import 'package:hangman/files/storage.dart';
 
 class FileController extends ChangeNotifier {
   String _text = '';

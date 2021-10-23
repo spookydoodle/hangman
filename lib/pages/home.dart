@@ -1,11 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:hangman/settings/settings.dart';
-import 'package:hangman/settings/storage.dart';
-import 'package:hangman/ui/dropdown.dart';
 
-import './game.dart';
+import 'package:hangman/pages/game.dart';
+import 'package:hangman/settings/settings.dart';
+import 'package:hangman/files/storage.dart';
+import 'package:hangman/ui/dropdown.dart';
 
 class Home extends StatefulWidget {
   @override
