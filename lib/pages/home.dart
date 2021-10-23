@@ -37,81 +37,109 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actionsIconTheme: IconThemeData(
-          color: Theme.of(context).primaryColor,
-        ),
-        actions: <Widget>[
-          IconButton(icon: Icon(Icons.settings), onPressed: () {}),
-          IconButton(icon: Icon(Icons.account_circle), onPressed: () {})
+      appBar: appBar(),
+      body: body(),
+    );
+  }
+
+  // UI elements
+  PreferredSizeWidget appBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      actionsIconTheme: IconThemeData(
+        color: Theme.of(context).primaryColor,
+      ),
+      actions: <Widget>[
+        IconButton(icon: Icon(Icons.settings), onPressed: () {}),
+        IconButton(icon: Icon(Icons.account_circle), onPressed: () {})
+      ],
+    );
+  }
+
+  Widget body() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          hero(),
+          title(),
+          gameSelection(),
+          menuButtons(),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // Main avatar / logo of the game
-            Hero(
-              tag: 'hero-avatar',
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 80,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Image.asset('images/doodle-1/main.png'),
-                ),
-              ),
-            ),
-            //  Game Name
-            Text(
-              name,
-              style: Theme.of(context).textTheme.headline5,
-              textAlign: TextAlign.center,
-            ),
-            // Selectors
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Dropdown(
-                    items: ['general', 'business', 'entertainment', 'science', 'health', 'sport'],
-                    value: category.toString().split('.').last,
-                    onSelect: _updateCategory),
-                Dropdown(
-                    items: ['gb', 'us', 'de', 'nl', 'pl'],
-                    value: country.toString().split('.').last,
-                    onSelect: _updateCountry),
-              ],
-            ),
-            //  Menu Item List
-            Padding(
-              padding: const EdgeInsets.only(top: 40.0),
-              child: Column(
-                children: <Widget>[
-                  navButton("Play", _onPlay),
-                  navButton("Leaderboard", _onLeaderboard),
-                  navButton("Exit", _onExit),
-                ],
-              ),
-            ),
-          ],
+    );
+  }
+
+  Widget hero() {
+    return Hero(
+      tag: 'hero-avatar',
+      child: CircleAvatar(
+        backgroundColor: Colors.white,
+        radius: 80,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Image.asset('images/doodle-1/main.png'),
         ),
       ),
     );
   }
 
-  void _updateCategory(String val) {
-    Settings.category = getCategory(val);
-    storage.writeJsonFile(val, Settings.country.toString().split('.').last);
+  Widget title() {
+    return Text(
+      name,
+      style: Theme.of(context).textTheme.headline5,
+      textAlign: TextAlign.center,
+    );
   }
 
-  void _updateCountry(String val) {
-    Settings.country = getCountry(val);
-    storage.writeJsonFile(Settings.category.toString().split('.').last, val);
+  Widget gameSelection() {
+    void _updateCategory(String val) {
+      Settings.category = getCategory(val);
+      storage.writeJsonFile(val, Settings.country.toString().split('.').last);
+    }
+
+    void _updateCountry(String val) {
+      Settings.country = getCountry(val);
+      storage.writeJsonFile(Settings.category.toString().split('.').last, val);
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Dropdown(
+            items: [
+              'general',
+              'business',
+              'entertainment',
+              'science',
+              'health',
+              'sport'
+            ],
+            value: category.toString().split('.').last,
+            onSelect: _updateCategory),
+        Dropdown(
+            items: ['gb', 'us', 'de', 'nl', 'pl'],
+            value: country.toString().split('.').last,
+            onSelect: _updateCountry),
+      ],
+    );
   }
 
-  Widget navButton(String name, onPressed) => SizedBox(
+  Widget menuButtons() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 40.0),
+      child: Column(
+        children: <Widget>[
+          menuButton("Play", _onPlay),
+          menuButton("Leaderboard", _onLeaderboard),
+          menuButton("Exit", _onExit),
+        ],
+      ),
+    );
+  }
+
+  Widget menuButton(String name, onPressed) => SizedBox(
         width: 300.0,
         height: 60.0,
         child: Padding(
