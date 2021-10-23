@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hangman/pages/game.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/files/storage.dart';
-import 'package:hangman/ui/dropdown.dart';
+import 'package:hangman/components/dropdown.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -26,6 +26,8 @@ class _HomeState extends State<Home> {
     storage.readJsonFile().then((value) {
       Settings.category = getCategory(value['category']);
       Settings.country = getCountry(value['country']);
+      Settings.page = 1;
+      print('INITIALIZE HOME PAGE');
 
       setState(() {
         country = Settings.country;

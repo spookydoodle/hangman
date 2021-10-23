@@ -9,7 +9,7 @@ import 'package:hangman/model/headline.dart';
 import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
-import 'package:hangman/ui/game.dart';
+import 'package:hangman/components/game.dart';
 
 // Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
@@ -30,7 +30,6 @@ class _GameState extends State<Game> {
 
   Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines();
 
-  // List keywords = [];
   List<HeadlineModel> keywords = [];
 
   int keywordIndex = -1;
@@ -42,17 +41,17 @@ class _GameState extends State<Game> {
   bool gameOver = false;
   bool gameWon = false;
 
-  int fetchAttempt = 0;
-
   @override
   void initState() {
     super.initState();
+    print('INITIALIZE GAME STATE');
     Settings.page = 1;
     _copyProcessedIdsToMemory();
     _alphabet = getAlphabet(Settings.country)
         .split('')
         .map((char) => char.toUpperCase())
         .toList();
+
     _nextGame();
   }
 
@@ -212,6 +211,7 @@ class _GameState extends State<Game> {
 
   void _increasePageIndex() {
     Settings.page++;
+    print('INCREASED PAGE INDEX: ${Settings.page}');
   }
 
   void _resetKeywordIndex() {
@@ -223,21 +223,15 @@ class _GameState extends State<Game> {
   }
 
   void _selectKeyword() {
-    if (!_needsKeywordUpdate()) {
       HeadlineModel headline = keywords[keywordIndex];
       keyword = headline.headline.toString().toUpperCase();
       Memory.processedIds.add(headline.id);
       widget.storage.writeHeadline(headline.id.toString());
 
       if (keyword.length > 65) {
+        print('SKIPPING DUE TO LENGHTH ${keyword.length}. NEXT GAME');
         _nextGame();
       }
-
-      return;
-    }
-
-    // If for some reason select is not possible; run next game to update keywords;
-    _nextGame();
   }
 
   void _resetAlphabet() {
@@ -261,6 +255,7 @@ class _GameState extends State<Game> {
     int minUniqueN = alphabetLen - (max * factor);
 
     if (uniqueCharLen > maxUniqueN) {
+      print('NEXT GAME DUE TO UNIQUE CHAR LEN $uniqueCharLen > maxUniqueN $maxUniqueN');
       _nextGame();
 
       return;
@@ -271,37 +266,35 @@ class _GameState extends State<Game> {
         : ((alphabetLen - uniqueCharLen) / factor).floor();
   }
 
-  void _updateKeywords() {
-    print('UPDATING KEYWORDS');
-    print('FETCH ATTEMPT NR:');
-    print(fetchAttempt);
-    if (fetchAttempt < 3) {
-      _data.then((headlines) {
-        var newKeywords = headlines
-            .where((headline) => !Memory.processedIds.contains(headline.id))
-            .toList();
+  // Try to fetch results 5 times, if nothing received show error and go back to home screen
+  void _updateKeywords() async {
+    for (int retry = 0; retry < 5; retry++) {
+      // var headlines = await _data;
+      var headlines = await HeadlineNetwork().getHeadlines();
 
-        print('NEW KEYWORDS LEN:');
-        print(newKeywords.length);
+      if (headlines.length == 0) {
+        print('CONTINUING FETCH FOR LOOP - NO HEADLINES AVAILABLE');
+        continue;
+      }
+
+      print('PROCESSING ${headlines.length} HEADLINES');
+      var newKeywords = headlines
+          .where((headline) => !Memory.processedIds.contains(headline.id))
+          .toList();
+
+      if (newKeywords.length > 0) {
         setState(() {
-          if (newKeywords.length > 0) {
-            fetchAttempt = 0;
-          } else {
-            fetchAttempt++;
-          }
-
           _increasePageIndex();
           _resetKeywordIndex();
           _setKeywords(newKeywords);
         });
+        // If results are fetched, run next game and get out of the loop
+        print(
+            'NEW KEYWORDS LEN: ${newKeywords.length}. BREAKING FETCH FOR LOOP at retry $retry.');
 
         _nextGame();
-      }).catchError((err) {
-        print('FETCH ERROR');
-        print(err);
-      });
-    } else {
-      print('FETCH LIMIT EXCEEDED');
+        break;
+      }
     }
   }
 
@@ -331,24 +324,18 @@ class _GameState extends State<Game> {
 
     // Set next game state, if data does not need to be updated yet
     print('SETTING NEXT GAME STATE');
-    _setNextGameState(reset: reset);
-  }
+    setState(() {
+      _resetAlphabet();
+      _selectKeyword();
+      _resetMistakeIndex();
+      _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
+      _setGameWon(false);
 
-  void _setNextGameState({bool reset = false}) {
-    if (!_needsKeywordUpdate()) {
-      setState(() {
-        _resetAlphabet();
-        _selectKeyword();
-        _resetMistakeIndex();
-        _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
-        _setGameWon(false);
-
-        if (reset) {
-          _setGameOver(false);
-          _resetWonGames();
-        }
-      });
-    }
+      if (reset) {
+        _setGameOver(false);
+        _resetWonGames();
+      }
+    });
   }
 
   _onHome() {
