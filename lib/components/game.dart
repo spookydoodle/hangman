@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hangman/settings/translator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // User Interface components
 //_usedLetters.contains(char)
@@ -12,10 +14,12 @@ Widget letterButton(
 
 Widget gameView({
   required BuildContext context,
+  required Translator translator,
   required int wonGames,
   required int maxMistakes,
   required int mistakeIndex,
   required String keywordDisplay,
+  required String url,
   required List<String> alphabet,
   required List<String> wrongLetters,
   required List<String> usedLetters,
@@ -31,25 +35,27 @@ Widget gameView({
       children: [
         // TODO: Handle overflow (scroll?)
         mainGame(
-          context: context,
-          wonGames: wonGames,
-          maxMistakes: maxMistakes,
-          mistakeIndex: mistakeIndex,
-          keywordDisplay: keywordDisplay,
-          alphabet: alphabet,
-          wrongLetters: wrongLetters,
-          usedLetters: usedLetters,
-          onLetterClick: onLetterClick
-        ),
+            context: context,
+            translator: translator,
+            wonGames: wonGames,
+            maxMistakes: maxMistakes,
+            mistakeIndex: mistakeIndex,
+            keywordDisplay: keywordDisplay,
+            alphabet: alphabet,
+            wrongLetters: wrongLetters,
+            usedLetters: usedLetters,
+            onLetterClick: onLetterClick),
         if (gameWon)
           gameOverScreen(
-              message: 'You Won! ;-)',
-              buttonText: 'Next Game',
+              message: translator.youWon,
+              buttonText: translator.nextGame,
+              url: url,
               onPressed: () => next(reset: false)),
         if (gameOver)
           gameOverScreen(
-              message: 'You Lost! ;-(',
-              buttonText: 'Start New Game',
+              message: translator.youLost,
+              buttonText: translator.startNewGame,
+              url: url,
               onPressed: () => next(reset: true)),
       ],
     ),
@@ -58,6 +64,7 @@ Widget gameView({
 
 Widget mainGame(
     {required BuildContext context,
+    required Translator translator,
     required int wonGames,
     required int maxMistakes,
     required int mistakeIndex,
@@ -70,6 +77,7 @@ Widget mainGame(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: <Widget>[
       displayScore(
+          translator: translator,
           wonGames: wonGames,
           mistakeIndex: mistakeIndex,
           maxMistakes: maxMistakes),
@@ -88,7 +96,8 @@ Widget mainGame(
 
 // TODO: Replace with new graphics and handle dynamic maxMistakes
 Widget displayScore(
-    {required int wonGames,
+    {required Translator translator,
+    required int wonGames,
     required int maxMistakes,
     required int mistakeIndex}) {
   final Image gallowsImage = Image.asset('images/doodle-1/wrong_0.png');
@@ -103,8 +112,8 @@ Widget displayScore(
 
   return Column(
     children: [
-      Text('Won games: $wonGames'),
-      Text('Remaining guesses: ${maxMistakes - mistakeIndex}'),
+      Text('${translator.wonGames}: $wonGames'),
+      Text('${translator.remainingGuesses}: ${maxMistakes - mistakeIndex}'),
       Padding(
         padding: const EdgeInsets.only(top: 20.0),
         child: Container(
@@ -173,6 +182,7 @@ Widget displayAlphabet(
 Widget gameOverScreen(
     {required String message,
     required String buttonText,
+    required String url,
     required void Function() onPressed}) {
   return Center(
     child: Column(children: [
@@ -183,13 +193,15 @@ Widget gameOverScreen(
             child: Column(
               children: [
                 Text(message, style: TextStyle(color: Colors.white)),
+                new InkWell(
+                    child: new Text('Go to news'), onTap: () => launch(url)),
                 ElevatedButton(onPressed: onPressed, child: Text(buttonText))
               ],
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
             ),
           ),
-          color: Colors.black),
+          color: Colors.teal),
     ]),
   );
 }

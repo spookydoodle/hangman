@@ -1,3 +1,5 @@
+import 'package:hangman/settings/translator.dart';
+
 enum Category { general, business, entertainment, science, sport, health }
 
 Category getCategory(String str) {
@@ -40,34 +42,32 @@ Country getCountry(String str) {
 
 enum Lang { english, german, polish, dutch }
 
-String getLang(Country country) {
+Lang getLang(Country country) {
   switch (country) {
     case Country.gb:
-      return 'English';
+      return Lang.english;
     case Country.us:
-      return 'English';
+      return Lang.english;
     case Country.de:
-      return 'German';
+      return Lang.german;
     case Country.nl:
-      return 'Dutch';
+      return Lang.dutch;
     case Country.pl:
-      return 'Polish';
+      return Lang.polish;
     default:
-      return 'English';
+      return Lang.english;
   }
 }
 
-String getAlphabet(Country country) {
-  switch (country) {
-    case Country.gb:
+String getAlphabet(Lang lang) {
+  switch (lang) {
+    case Lang.english:
       return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    case Country.us:
-      return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    case Country.de:
+    case Lang.german:
       return "AÄBCDEFGHIJKLMNOÖPQRSßTUÜVWXYZ";
-    case Country.nl:
+    case Lang.dutch:
       return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    case Country.pl:
+    case Lang.polish:
       return "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŹŻ";
     default:
       return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -77,4 +77,7 @@ String getAlphabet(Country country) {
 class Settings {
   static Category category = Category.general;
   static Country country = Country.gb;
+  static Translator translator() {
+    return getTranslator(getLang(Settings.country));
+  }
 }

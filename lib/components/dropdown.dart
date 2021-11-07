@@ -9,7 +9,7 @@ class Dropdown extends StatefulWidget {
         required this.onSelect})
       : super(key: key);
 
-  final List<String> items;
+  final List<List<String>> items;
   String value;
   final void Function(String) onSelect;
 
@@ -31,10 +31,10 @@ class _DropdownState extends State<Dropdown> {
           widget.onSelect(newValue);
         });
       },
-      items: widget.items.map<DropdownMenuItem<String>>((String value) {
+      items: widget.items.map<DropdownMenuItem<String>>((List<String> value) {
         return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
+          value: value[0],
+          child: Text(value[1]),
         );
       }).toList(),
     );

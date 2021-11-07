@@ -1,3 +1,10 @@
+class Keyword {
+  String text = "";
+  String url = "";
+
+  Keyword(this.text, this.url);
+}
+
 class HeadlineModel {
   int id = 0;
   String category = "";

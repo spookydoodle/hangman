@@ -10,12 +10,14 @@ import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/components/game.dart';
+import 'package:hangman/settings/translator.dart';
 
 // Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
-  const Game({Key? key, required this.storage}) : super(key: key);
-
   final FileManager storage;
+  final Translator translator;
+
+  const Game({Key? key, required this.storage, required this.translator}) : super(key: key);
 
   @override
   _GameState createState() => _GameState();
@@ -34,7 +36,7 @@ class _GameState extends State<Game> {
 
   List<HeadlineModel> _keywords = [];
   int _keywordIndex = 0;
-  String _keyword = "";
+  Keyword _keyword = new Keyword("", "");
   String _replacedKeyword = "";
   final int _maxKeywordLength = 65;
 
@@ -49,7 +51,7 @@ class _GameState extends State<Game> {
   void initState() {
     super.initState();
     _copyProcessedIdsToMemory();
-    _alphabet = getAlphabet(Settings.country)
+    _alphabet = getAlphabet(getLang(Settings.country))
         .split('')
         .map((char) => char.toUpperCase())
         .toList();
@@ -99,10 +101,12 @@ class _GameState extends State<Game> {
             if (snapshot.hasData && !_needsKeywordUpdate()) {
               return gameView(
                 context: context,
+                translator: widget.translator,
                 wonGames: wonGames,
                 maxMistakes: _maxMistakes,
                 mistakeIndex: mistakeIndex,
                 keywordDisplay: _replaceChar(),
+                url: _keyword.url,
                 alphabet: _alphabet,
                 wrongLetters: _wrongLetters,
                 usedLetters: _usedLetters,
@@ -141,7 +145,7 @@ class _GameState extends State<Game> {
   }
 
   String _replaceChar() {
-    var keywordCopy = [..._keyword.split('')].join('').toUpperCase();
+    var keywordCopy = [..._keyword.text.split('')].join('').toUpperCase();
     _alphabet.forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
@@ -157,7 +161,7 @@ class _GameState extends State<Game> {
       setState(() {
         _usedLetters.add(char);
 
-        if (_keyword.contains(char)) {
+        if (_keyword.text.contains(char)) {
           _onCorrect();
         } else {
           _onMistake(char);
@@ -170,7 +174,7 @@ class _GameState extends State<Game> {
   void _onCorrect() {
     _replacedKeyword = _replaceChar();
 
-    if (_replacedKeyword == _keyword) {
+    if (_replacedKeyword == _keyword.text) {
       _setGameWon(true);
       _increaseWonGames();
     }
@@ -231,18 +235,20 @@ class _GameState extends State<Game> {
     _keywords = newKeywords;
   }
 
-  String _selectKeyword(void Function() onDone) {
+  Keyword _selectKeyword(void Function() onDone) {
     HeadlineModel headline = _keywords[_keywordIndex];
     Memory.processedIds.add(headline.id);
     widget.storage.writeHeadline(headline.id.toString());
 
+    Keyword selectedKeyword = new Keyword(headline.headline.toUpperCase(), headline.url);
+
     onDone();
 
-    return headline.headline.toString().toUpperCase();
+    return selectedKeyword;
   }
 
-  void _setKeyword(String newKeyword) {
-    _keyword = newKeyword;
+  void _setKeyword(Keyword keyword) {
+    _keyword = keyword;
   }
 
   void _resetAlphabet() {
@@ -338,11 +344,11 @@ class _GameState extends State<Game> {
     }
 
     // Select new keyword and determine maxMistakes
-    String newKeyword = _selectKeyword(_increaseKeywordIndexState);
-    int newMaxMistakes = _getMaxMistakes(newKeyword);
+    Keyword newKeyword = _selectKeyword(_increaseKeywordIndexState);
+    int newMaxMistakes = _getMaxMistakes(newKeyword.text);
 
     // If keyword too long to display or if number of unique characters too large compared to alphabet length -> skip this game and run next
-    if (newKeyword.length > _maxKeywordLength || newMaxMistakes == -1) {
+    if (newKeyword.text.length > _maxKeywordLength || newMaxMistakes == -1) {
       _nextGame(reset: reset);
       return;
     }

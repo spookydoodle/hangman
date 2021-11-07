@@ -6,6 +6,7 @@ import 'package:hangman/pages/game.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/files/storage.dart';
 import 'package:hangman/components/dropdown.dart';
+import 'package:hangman/settings/translator.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -13,9 +14,9 @@ class Home extends StatefulWidget {
 }
 
 FileManager storage = FileManager();
+Translator translator = Settings.translator();
 
 class _HomeState extends State<Home> {
-  var name = 'Hangman:\nGuess The News';
   Category category = Category.general;
   Country country = Country.gb;
 
@@ -31,6 +32,7 @@ class _HomeState extends State<Home> {
       setState(() {
         country = Settings.country;
         category = Settings.category;
+        translator = Settings.translator();
       });
     });
   }
@@ -88,7 +90,7 @@ class _HomeState extends State<Home> {
 
   Widget title() {
     return Text(
-      name,
+      _getName(),
       style: Theme.of(context).textTheme.headline5,
       textAlign: TextAlign.center,
     );
@@ -101,7 +103,14 @@ class _HomeState extends State<Home> {
     }
 
     void _updateCountry(String val) {
-      Settings.country = getCountry(val);
+      Country c = getCountry(val);
+      Settings.country = c;
+
+      setState(() {
+        country = c;
+        translator = Settings.translator();
+      });
+
       storage.writeJsonFile(Settings.category.toString().split('.').last, val);
     }
 
@@ -110,19 +119,22 @@ class _HomeState extends State<Home> {
       children: [
         Dropdown(
             items: [
-              'general',
-              'business',
-              'entertainment',
-              'science',
-              'health',
-              'sport'
+              ['general', translator.general],
+              ['business', translator.business],
+              ['entertainment', translator.entertainment],
+              ['science', translator.science],
+              ['health', translator.health],
+              ['sport', translator.sport]
             ],
             value: category.toString().split('.').last,
             onSelect: _updateCategory),
-        Dropdown(
-            items: ['gb', 'us', 'de', 'nl', 'pl'],
-            value: country.toString().split('.').last,
-            onSelect: _updateCountry),
+        Dropdown(items: [
+          ['gb', 'English (UK)'],
+          ['us', 'English (US)'],
+          ['de', 'Deutsch'],
+          ['nl', 'Nederlands'],
+          ['pl', 'Polski']
+        ], value: country.toString().split('.').last, onSelect: _updateCountry),
       ],
     );
   }
@@ -132,9 +144,9 @@ class _HomeState extends State<Home> {
       padding: const EdgeInsets.only(top: 40.0),
       child: Column(
         children: <Widget>[
-          menuButton("Play", _onPlay),
-          menuButton("Leaderboard", _onLeaderboard),
-          menuButton("Exit", _onExit),
+          menuButton(translator.play, _onPlay),
+          menuButton(translator.leaderboard, _onLeaderboard),
+          menuButton(translator.exit, _onExit),
         ],
       ),
     );
@@ -155,9 +167,16 @@ class _HomeState extends State<Home> {
         ),
       );
 
+  _getName() {
+    return '${translator.title}:\n${translator.subtitle}';
+  }
+
   _onPlay() {
-    Navigator.push(context,
-        MaterialPageRoute(builder: (context) => Game(storage: storage)));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) =>
+                Game(storage: storage, translator: translator)));
   }
 
   _onLeaderboard() {}
