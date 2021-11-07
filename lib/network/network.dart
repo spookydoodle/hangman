@@ -8,10 +8,9 @@ import 'package:http/http.dart';
 // lang (cc) = { en (gb), en (us), de (de), nl (nl), pl (pl) }
 // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
 class HeadlineNetwork {
-  Future<List<HeadlineModel>> getHeadlines() async {
+  Future<List<HeadlineModel>> getHeadlines(int page) async {
     var category = Settings.category.toString().split('.').last;
     var cc = Settings.country.toString().split('.').last;
-    var page = Settings.page;
 
     var baseUrl = 'https://felidae.spookydoodle.com/news/$category';
     var query = 'cc=$cc&sortBy=timestamp desc&page=$page';

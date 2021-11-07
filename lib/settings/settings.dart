@@ -77,5 +77,4 @@ String getAlphabet(Country country) {
 class Settings {
   static Category category = Category.general;
   static Country country = Country.gb;
-  static int page = 1;
 }

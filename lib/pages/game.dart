@@ -26,33 +26,35 @@ class _GameState extends State<Game> {
   List<String> _usedLetters = [];
   List<String> _wrongLetters = [];
 
+  bool _gameOver = false;
+  bool _gameWon = false;
+
+  int _page = 1;
+  Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines(1);
+
+  List<HeadlineModel> _keywords = [];
+  int _keywordIndex = 0;
+  String _keyword = "";
+  String _replacedKeyword = "";
+  final int _maxKeywordLength = 65;
+
   final Range _maxMistakesRange = Range(3, 7);
-
-  Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines();
-
-  List<HeadlineModel> keywords = [];
-
-  int keywordIndex = -1;
-  String keyword = "";
-  String replacedKeyword = "";
-  int maxMistakes = 7;
-  int wonGames = 0;
+  int _maxMistakes = 7;
   int mistakeIndex = 0;
-  bool gameOver = false;
-  bool gameWon = false;
+  int wonGames = 0;
+
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    print('INITIALIZE GAME STATE');
-    Settings.page = 1;
     _copyProcessedIdsToMemory();
     _alphabet = getAlphabet(Settings.country)
         .split('')
         .map((char) => char.toUpperCase())
         .toList();
 
-    _nextGame();
+    _nextGame(reset: true);
   }
 
   @override
@@ -90,21 +92,23 @@ class _GameState extends State<Game> {
           if (snapshot.connectionState == ConnectionState.done) {
             if (snapshot.hasError) {
               return Text('Error while fetching data');
+            } else if (_error != '') {
+              return Text(_error);
             }
 
             if (snapshot.hasData && !_needsKeywordUpdate()) {
               return gameView(
                 context: context,
                 wonGames: wonGames,
-                maxMistakes: maxMistakes,
+                maxMistakes: _maxMistakes,
                 mistakeIndex: mistakeIndex,
                 keywordDisplay: _replaceChar(),
                 alphabet: _alphabet,
                 wrongLetters: _wrongLetters,
                 usedLetters: _usedLetters,
                 onLetterClick: _checkLetter,
-                gameOver: gameOver,
-                gameWon: gameWon,
+                gameOver: _gameOver,
+                gameWon: _gameWon,
                 next: _nextGame,
               );
             } else {
@@ -132,16 +136,16 @@ class _GameState extends State<Game> {
   }
 
   bool _needsKeywordUpdate() {
-    var len = keywords.length;
-    return len == 0 || keywordIndex >= len;
+    var len = _keywords.length;
+    return len == 0 || _keywordIndex >= len;
   }
 
   String _replaceChar() {
-    var keywordCopy = [...keyword.split('')].join('').toUpperCase();
+    var keywordCopy = [..._keyword.split('')].join('').toUpperCase();
     _alphabet.forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
-            gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
+            _gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
       }
     });
 
@@ -149,11 +153,11 @@ class _GameState extends State<Game> {
   }
 
   void _checkLetter(String char) {
-    if (!gameOver && !gameWon) {
+    if (!_gameOver && !_gameWon) {
       setState(() {
         _usedLetters.add(char);
 
-        if (keyword.contains(char)) {
+        if (_keyword.contains(char)) {
           _onCorrect();
         } else {
           _onMistake(char);
@@ -164,9 +168,9 @@ class _GameState extends State<Game> {
 
   // Result check
   void _onCorrect() {
-    replacedKeyword = _replaceChar();
+    _replacedKeyword = _replaceChar();
 
-    if (replacedKeyword == keyword) {
+    if (_replacedKeyword == _keyword) {
       _setGameWon(true);
       _increaseWonGames();
     }
@@ -177,12 +181,12 @@ class _GameState extends State<Game> {
     if (!_wrongLetters.contains(char)) {
       _wrongLetters.add(char);
       _increaseMistakeIndex();
-      _setGameOver(mistakeIndex == maxMistakes);
+      _setGameOver(mistakeIndex == _maxMistakes);
     }
   }
 
   void _setGameOver(bool b) {
-    gameOver = b;
+    _gameOver = b;
   }
 
   void _increaseMistakeIndex() {
@@ -194,7 +198,7 @@ class _GameState extends State<Game> {
   }
 
   void _setGameWon(bool b) {
-    gameWon = b;
+    _gameWon = b;
   }
 
   void _increaseWonGames() {
@@ -206,32 +210,39 @@ class _GameState extends State<Game> {
   }
 
   void _increaseKeywordIndex() {
-    keywordIndex++;
+    _keywordIndex++;
+  }
+
+  void _increaseKeywordIndexState() {
+    setState(() {
+      _increaseKeywordIndex();
+    });
   }
 
   void _increasePageIndex() {
-    Settings.page++;
-    print('INCREASED PAGE INDEX: ${Settings.page}');
+    _page++;
   }
 
   void _resetKeywordIndex() {
-    keywordIndex = -1;
+    _keywordIndex = 0;
   }
 
   void _setKeywords(List<HeadlineModel> newKeywords) {
-    keywords = newKeywords;
+    _keywords = newKeywords;
   }
 
-  void _selectKeyword() {
-      HeadlineModel headline = keywords[keywordIndex];
-      keyword = headline.headline.toString().toUpperCase();
-      Memory.processedIds.add(headline.id);
-      widget.storage.writeHeadline(headline.id.toString());
+  String _selectKeyword(void Function() onDone) {
+    HeadlineModel headline = _keywords[_keywordIndex];
+    Memory.processedIds.add(headline.id);
+    widget.storage.writeHeadline(headline.id.toString());
 
-      if (keyword.length > 65) {
-        print('SKIPPING DUE TO LENGHTH ${keyword.length}. NEXT GAME');
-        _nextGame();
-      }
+    onDone();
+
+    return headline.headline.toString().toUpperCase();
+  }
+
+  void _setKeyword(String newKeyword) {
+    _keyword = newKeyword;
   }
 
   void _resetAlphabet() {
@@ -239,11 +250,14 @@ class _GameState extends State<Game> {
     _wrongLetters = [];
   }
 
-  // Adjust maxMistakes based on number of unique characters in the headline
-  void _setMaxMistakes(int min, int max, int factor) {
+  // Adjust maxMistakes based on number of unique characters in the headline. Returns -1 for rejected keywords
+  int _getMaxMistakes(String text) {
+    final int factor = 2;
+    final int min = _maxMistakesRange.min;
+    final int max = _maxMistakesRange.max;
     final int alphabetLen = _alphabet.length;
 
-    int uniqueCharLen = keyword
+    int uniqueCharLen = text
         .replaceAll(' ', '')
         .split('')
         .toSet()
@@ -255,80 +269,90 @@ class _GameState extends State<Game> {
     int minUniqueN = alphabetLen - (max * factor);
 
     if (uniqueCharLen > maxUniqueN) {
-      print('NEXT GAME DUE TO UNIQUE CHAR LEN $uniqueCharLen > maxUniqueN $maxUniqueN');
-      _nextGame();
-
-      return;
+      return -1;
     }
 
-    maxMistakes = uniqueCharLen < minUniqueN
+    return uniqueCharLen < minUniqueN
         ? max
         : ((alphabetLen - uniqueCharLen) / factor).floor();
   }
 
-  // Try to fetch results 5 times, if nothing received show error and go back to home screen
-  void _updateKeywords() async {
-    for (int retry = 0; retry < 5; retry++) {
-      // var headlines = await _data;
-      var headlines = await HeadlineNetwork().getHeadlines();
+  void _setMaxMistakes(int n) {
+    _maxMistakes = n;
+  }
+
+  // Scenario 1: API page returns 0 results - Try to fetch results 5 times for ++page, if nothing received show error and go back to home screen
+  // Scenario 2: API page returns results but processing returns 0 suitable results, page++ and repeat until success (unless scenario 1)
+  void _updateKeywords(void Function() onDone) async {
+    int maxRetry = 5;
+
+    for (int retry = 0; retry < maxRetry; retry++) {
+      var headlines = await HeadlineNetwork().getHeadlines(_page);
+
+      setState(() {
+        _increasePageIndex();
+      });
 
       if (headlines.length == 0) {
-        print('CONTINUING FETCH FOR LOOP - NO HEADLINES AVAILABLE');
+        // If data is unavailable after max-retry times, display appropriate error
+        if (retry == maxRetry - 1) {
+          setState(() {
+            _error =
+                'You\'ve read all the news in the world! Choose another category or come back tomorrow!';
+          });
+        }
+
         continue;
       }
 
-      print('PROCESSING ${headlines.length} HEADLINES');
       var newKeywords = headlines
           .where((headline) => !Memory.processedIds.contains(headline.id))
           .toList();
 
+      if (newKeywords.length == 0) {
+        retry = 0;
+        continue;
+      }
+
       if (newKeywords.length > 0) {
         setState(() {
-          _increasePageIndex();
           _resetKeywordIndex();
           _setKeywords(newKeywords);
         });
-        // If results are fetched, run next game and get out of the loop
-        print(
-            'NEW KEYWORDS LEN: ${newKeywords.length}. BREAKING FETCH FOR LOOP at retry $retry.');
 
-        _nextGame();
+        onDone();
         break;
       }
     }
   }
 
-  // Game state - increase index -> check if list needs to update -> run new game
+  bool _needKeywordUpdate() =>
+      _keywords.length == 0 || _keywordIndex >= _keywords.length;
+
+  // Main game
   void _nextGame({bool reset = false}) {
-    print('NEW GAME');
-    setState(() {
-      print('NEW GAME - Increase Keyword Index');
-      print(keywordIndex);
-
-      _increaseKeywordIndex();
-
-      print(keywordIndex);
-      print('KEYWORD INDEX INCREASED');
-    });
-
-    // Fetch new data and prevent from continuing.
-    // The fetch method runs _nextGame() again once data is updated
-    if (keywords.length == 0 || keywordIndex >= keywords.length) {
-      print('NEEDS KEYWORD UPDATE');
-      print(keywords.length);
-      print(keywordIndex);
-      _updateKeywords();
-
+    // Fetch new data, then run next game. Prevent this method from continuing
+    if (_needKeywordUpdate()) {
+      _updateKeywords(() => _nextGame(reset: reset));
       return;
     }
 
-    // Set next game state, if data does not need to be updated yet
-    print('SETTING NEXT GAME STATE');
+    // Select new keyword and determine maxMistakes
+    String newKeyword = _selectKeyword(_increaseKeywordIndexState);
+    int newMaxMistakes = _getMaxMistakes(newKeyword);
+
+    // If keyword too long to display or if number of unique characters too large compared to alphabet length -> skip this game and run next
+    if (newKeyword.length > _maxKeywordLength || newMaxMistakes == -1) {
+      _nextGame(reset: reset);
+      return;
+    }
+
+    // Set state to launch game
     setState(() {
       _resetAlphabet();
-      _selectKeyword();
       _resetMistakeIndex();
-      _setMaxMistakes(_maxMistakesRange.min, _maxMistakesRange.max, 2);
+      _setKeyword(newKeyword);
+      _setMaxMistakes(newMaxMistakes);
       _setGameWon(false);
 
       if (reset) {

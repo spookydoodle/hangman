@@ -26,7 +26,6 @@ class _HomeState extends State<Home> {
     storage.readJsonFile().then((value) {
       Settings.category = getCategory(value['category']);
       Settings.country = getCountry(value['country']);
-      Settings.page = 1;
       print('INITIALIZE HOME PAGE');
 
       setState(() {
