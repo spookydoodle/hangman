@@ -47,12 +47,14 @@ Widget gameView({
             onLetterClick: onLetterClick),
         if (gameWon)
           gameOverScreen(
+              translator: translator,
               message: translator.youWon,
               buttonText: translator.nextGame,
               url: url,
               onPressed: () => next(reset: false)),
         if (gameOver)
           gameOverScreen(
+              translator: translator,
               message: translator.youLost,
               buttonText: translator.startNewGame,
               url: url,
@@ -180,7 +182,8 @@ Widget displayAlphabet(
 }
 
 Widget gameOverScreen(
-    {required String message,
+    {required Translator translator,
+    required String message,
     required String buttonText,
     required String url,
     required void Function() onPressed}) {
@@ -194,7 +197,8 @@ Widget gameOverScreen(
               children: [
                 Text(message, style: TextStyle(color: Colors.white)),
                 new InkWell(
-                    child: new Text('Go to news'), onTap: () => launch(url)),
+                    child: new Text(translator.goToNews),
+                    onTap: () => launch(url)),
                 ElevatedButton(onPressed: onPressed, child: Text(buttonText))
               ],
               mainAxisAlignment: MainAxisAlignment.center,
