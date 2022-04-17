@@ -26,7 +26,7 @@ Widget gameView({
   required void Function(String) onLetterClick,
   required bool gameOver,
   required bool gameWon,
-  required void Function({bool reset}) next,
+  required void Function({required bool reset}) next,
 }) {
   return Padding(
     padding:

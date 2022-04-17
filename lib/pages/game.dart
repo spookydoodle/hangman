@@ -1,29 +1,37 @@
-import 'dart:async';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
+import 'package:hangman/components/game/game.dart';
+import 'package:hangman/components/game/game_app_bar.dart';
 import 'package:hangman/files/storage.dart';
 import 'package:hangman/model/common.dart';
 import 'package:hangman/model/headline.dart';
 import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
-import 'package:hangman/components/game.dart';
 import 'package:hangman/settings/translator.dart';
 
 // Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
   final FileManager storage;
   final Translator translator;
+  final Country country;
+  final Category category;
 
-  const Game({Key? key, required this.storage, required this.translator}) : super(key: key);
+  const Game(
+      {Key? key,
+      required this.storage,
+      required this.translator,
+      required this.country,
+      required this.category})
+      : super(key: key);
 
   @override
   _GameState createState() => _GameState();
 }
 
 class _GameState extends State<Game> {
+  final HeadlineNetwork _network = HeadlineNetwork();
+  int _networkPage = 1;
+
   List<String> _alphabet = [];
   List<String> _usedLetters = [];
   List<String> _wrongLetters = [];
@@ -31,17 +39,13 @@ class _GameState extends State<Game> {
   bool _gameOver = false;
   bool _gameWon = false;
 
-  int _page = 1;
-  Future<List<HeadlineModel>> _data = HeadlineNetwork().getHeadlines(1);
-
-  List<HeadlineModel> _keywords = [];
-  int _keywordIndex = 0;
-  Keyword _keyword = new Keyword("", "");
+  List<Keyword> _keywords = [];
+  int _keywordIndex = -1;
+  Keyword _keyword = new Keyword(id: -1, text: "", url: "", maxMistakes: -1);
   String _replacedKeyword = "";
   final int _maxKeywordLength = 65;
 
   final Range _maxMistakesRange = Range(3, 7);
-  int _maxMistakes = 7;
   int mistakeIndex = 0;
   int wonGames = 0;
 
@@ -50,8 +54,9 @@ class _GameState extends State<Game> {
   @override
   void initState() {
     super.initState();
+
     _copyProcessedIdsToMemory();
-    _alphabet = getAlphabet(getLang(Settings.country))
+    _alphabet = Settings.getAlphabet(widget.country)
         .split('')
         .map((char) => char.toUpperCase())
         .toList();
@@ -62,68 +67,34 @@ class _GameState extends State<Game> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0.0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: _onHome,
-            color: Theme.of(context).accentColor,
-            splashRadius: 20.0,
-          ),
-          Spacer(),
-          Hero(
-            tag: 'hero-avatar',
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 25,
-              child: Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: Image.asset('images/doodle-1/main.png'),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Center(
-          child: FutureBuilder<List<HeadlineModel>>(
-        future: _data,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<HeadlineModel>> snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            if (snapshot.hasError) {
-              return Text('Error while fetching data');
-            } else if (_error != '') {
-              return Text(_error);
-            }
-
-            if (snapshot.hasData && !_needsKeywordUpdate()) {
-              return gameView(
-                context: context,
-                translator: widget.translator,
-                wonGames: wonGames,
-                maxMistakes: _maxMistakes,
-                mistakeIndex: mistakeIndex,
-                keywordDisplay: _replaceChar(),
-                url: _keyword.url,
-                alphabet: _alphabet,
-                wrongLetters: _wrongLetters,
-                usedLetters: _usedLetters,
-                onLetterClick: _checkLetter,
-                gameOver: _gameOver,
-                gameWon: _gameWon,
-                next: _nextGame,
-              );
-            } else {
-              return Text('Could not find data or needs keywords list update.');
-            }
-          }
-
-          return CircularProgressIndicator();
-        },
-      )),
+      appBar: gameAppBar(context, _onHome),
+      body: Center(child: _body()),
     );
+  }
+
+  Widget _body() {
+    if (_isError()) {
+      return Text(_error);
+    }
+
+    return _needsKeywordsUpdate()
+        ? CircularProgressIndicator()
+        : gameView(
+            context: context,
+            translator: widget.translator,
+            wonGames: wonGames,
+            maxMistakes: _keyword.maxMistakes,
+            mistakeIndex: mistakeIndex,
+            keywordDisplay: _replaceChar(),
+            url: _keyword.url,
+            alphabet: _alphabet,
+            wrongLetters: _wrongLetters,
+            usedLetters: _usedLetters,
+            onLetterClick: _checkLetter,
+            gameOver: _gameOver,
+            gameWon: _gameWon,
+            next: _nextGame,
+          );
   }
 
   void _copyProcessedIdsToMemory() {
@@ -139,13 +110,24 @@ class _GameState extends State<Game> {
     });
   }
 
-  bool _needsKeywordUpdate() {
-    var len = _keywords.length;
-    return len == 0 || _keywordIndex >= len;
+  Future<List<HeadlineModel>> _fetchHeadlines(int page) async {
+    try {
+      var headlines =
+          await _network.getHeadlines(widget.category, widget.country, page);
+
+      return headlines.sublist(0, 10);
+    } catch (err) {
+      setState(() {
+        _setError(err.toString());
+      });
+
+      return [];
+    }
   }
 
   String _replaceChar() {
-    var keywordCopy = [..._keyword.text.split('')].join('').toUpperCase();
+    String keywordCopy = [..._keyword.text.split('')].join('').toUpperCase();
+
     _alphabet.forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
@@ -185,75 +167,111 @@ class _GameState extends State<Game> {
     if (!_wrongLetters.contains(char)) {
       _wrongLetters.add(char);
       _increaseMistakeIndex();
-      _setGameOver(mistakeIndex == _maxMistakes);
+      _setGameOver(mistakeIndex == _keyword.maxMistakes);
     }
-  }
-
-  void _setGameOver(bool b) {
-    _gameOver = b;
   }
 
   void _increaseMistakeIndex() {
     mistakeIndex++;
   }
 
-  void _resetMistakeIndex() {
-    mistakeIndex = 0;
-  }
-
-  void _setGameWon(bool b) {
-    _gameWon = b;
-  }
-
   void _increaseWonGames() {
     wonGames++;
   }
 
-  void _resetWonGames() {
-    wonGames = 0;
+  void _increaseNetworkPageIndex() {
+    _networkPage++;
   }
 
-  void _increaseKeywordIndex() {
-    _keywordIndex++;
+  // Main game
+  void _nextGame({required bool reset}) async {
+    if (_isError()) {
+      return;
+    }
+
+    _increaseKeywordIndex();
+
+    // Fetch new data, then run next game. Prevent this method from continuing
+    if (_needsKeywordsUpdate()) {
+      await _updateKeywords();
+      _nextGame(reset: reset);
+
+      return;
+    }
+
+    _launchGame(reset: reset, keyword: _getKeyword());
   }
 
-  void _increaseKeywordIndexState() {
+  bool _needsKeywordsUpdate() {
+    var len = _keywords.length;
+    return len == 0 || _keywordIndex >= len;
+  }
+
+  Future<void> _updateKeywords() async {
+    var keywords = await _getNewKeywords();
+
     setState(() {
-      _increaseKeywordIndex();
+      _resetKeywordIndex();
+      _setKeywords(keywords);
     });
   }
 
-  void _increasePageIndex() {
-    _page++;
+  // Scenario 1: API page returns 0 results - Try to fetch results 5 times for ++page, if nothing received show error and go back to home screen
+  // Scenario 2: API page returns results but processing returns 0 suitable results, page++ and repeat until success (unless scenario 1)
+  Future<List<Keyword>> _getNewKeywords() async {
+    int maxRetry = 5;
+    List<Keyword> newKeywords = [];
+
+    for (int retry = 1; retry < maxRetry; retry++) {
+      var headlines = await _fetchHeadlines(_networkPage);
+      _increaseNetworkPageIndex();
+
+      if (headlines.length == 0) {
+        if (retry == maxRetry) {
+          setState(() {
+            _setError(
+                'You\'ve read all the news in the world! Choose another category or come back tomorrow!');
+          });
+        }
+
+        continue;
+      }
+
+      newKeywords = headlines
+          .where((headline) => _isHeadlineOk(headline.id, headline.headline,
+              _getMaxMistakes(headline.headline)))
+          .map((headline) => new Keyword(
+              id: headline.id,
+              text: headline.headline,
+              url: headline.url,
+              maxMistakes: _getMaxMistakes(headline.headline)))
+          .toList();
+
+      if (newKeywords.length == 0) {
+        continue;
+      }
+
+      break;
+    }
+
+    return newKeywords;
   }
 
   void _resetKeywordIndex() {
-    _keywordIndex = 0;
+    _keywordIndex = -1;
   }
 
-  void _setKeywords(List<HeadlineModel> newKeywords) {
+  void _setKeywords(List<Keyword> newKeywords) {
     _keywords = newKeywords;
   }
 
-  Keyword _selectKeyword(void Function() onDone) {
-    HeadlineModel headline = _keywords[_keywordIndex];
-    Memory.processedIds.add(headline.id);
-    widget.storage.writeHeadline(headline.id.toString());
+  Keyword _getKeyword() {
+    Keyword keyword = _keywords[_keywordIndex];
 
-    Keyword selectedKeyword = new Keyword(headline.headline.toUpperCase(), headline.url);
+    Memory.processedIds.add(keyword.id);
+    widget.storage.writeHeadline(keyword.id.toString());
 
-    onDone();
-
-    return selectedKeyword;
-  }
-
-  void _setKeyword(Keyword keyword) {
-    _keyword = keyword;
-  }
-
-  void _resetAlphabet() {
-    _usedLetters = [];
-    _wrongLetters = [];
+    return keyword;
   }
 
   // Adjust maxMistakes based on number of unique characters in the headline. Returns -1 for rejected keywords
@@ -283,82 +301,29 @@ class _GameState extends State<Game> {
         : ((alphabetLen - uniqueCharLen) / factor).floor();
   }
 
-  void _setMaxMistakes(int n) {
-    _maxMistakes = n;
+  _isHeadlineOk(int id, String text, int maxMistakes) {
+    return !_isHeadlineProcessed(id) &&
+        !_isKeywordTooLong(text) &&
+        !_isMaxMistakesOutOfRange(maxMistakes);
   }
 
-  // Scenario 1: API page returns 0 results - Try to fetch results 5 times for ++page, if nothing received show error and go back to home screen
-  // Scenario 2: API page returns results but processing returns 0 suitable results, page++ and repeat until success (unless scenario 1)
-  void _updateKeywords(void Function() onDone) async {
-    int maxRetry = 5;
-
-    for (int retry = 0; retry < maxRetry; retry++) {
-      var headlines = await HeadlineNetwork().getHeadlines(_page);
-
-      setState(() {
-        _increasePageIndex();
-      });
-
-      if (headlines.length == 0) {
-        // If data is unavailable after max-retry times, display appropriate error
-        if (retry == maxRetry - 1) {
-          setState(() {
-            _error =
-                'You\'ve read all the news in the world! Choose another category or come back tomorrow!';
-          });
-        }
-
-        continue;
-      }
-
-      var newKeywords = headlines
-          .where((headline) => !Memory.processedIds.contains(headline.id))
-          .toList();
-
-      if (newKeywords.length == 0) {
-        retry = 0;
-        continue;
-      }
-
-      if (newKeywords.length > 0) {
-        setState(() {
-          _resetKeywordIndex();
-          _setKeywords(newKeywords);
-        });
-
-        onDone();
-        break;
-      }
-    }
+  _isHeadlineProcessed(int id) {
+    return Memory.processedIds.contains(id);
   }
 
-  bool _needKeywordUpdate() =>
-      _keywords.length == 0 || _keywordIndex >= _keywords.length;
+  _isKeywordTooLong(String text) {
+    return text.length > _maxKeywordLength;
+  }
 
-  // Main game
-  void _nextGame({bool reset = false}) {
-    // Fetch new data, then run next game. Prevent this method from continuing
-    if (_needKeywordUpdate()) {
-      _updateKeywords(() => _nextGame(reset: reset));
-      return;
-    }
+  _isMaxMistakesOutOfRange(maxMistakes) {
+    return maxMistakes == -1;
+  }
 
-    // Select new keyword and determine maxMistakes
-    Keyword newKeyword = _selectKeyword(_increaseKeywordIndexState);
-    int newMaxMistakes = _getMaxMistakes(newKeyword.text);
-
-    // If keyword too long to display or if number of unique characters too large compared to alphabet length -> skip this game and run next
-    if (newKeyword.text.length > _maxKeywordLength || newMaxMistakes == -1) {
-      _nextGame(reset: reset);
-      return;
-    }
-
-    // Set state to launch game
+  _launchGame({required bool reset, required Keyword keyword}) {
     setState(() {
       _resetAlphabet();
       _resetMistakeIndex();
-      _setKeyword(newKeyword);
-      _setMaxMistakes(newMaxMistakes);
+      _setKeyword(keyword);
       _setGameWon(false);
 
       if (reset) {
@@ -368,7 +333,44 @@ class _GameState extends State<Game> {
     });
   }
 
+  void _increaseKeywordIndex() {
+    _keywordIndex++;
+  }
+
+  void _resetAlphabet() {
+    _usedLetters = [];
+    _wrongLetters = [];
+  }
+
+  void _resetMistakeIndex() {
+    mistakeIndex = 0;
+  }
+
+  void _setKeyword(Keyword keyword) {
+    _keyword = keyword;
+  }
+
+  void _setGameWon(bool b) {
+    _gameWon = b;
+  }
+
+  void _setGameOver(bool b) {
+    _gameOver = b;
+  }
+
+  void _resetWonGames() {
+    wonGames = 0;
+  }
+
   _onHome() {
     Navigator.pop(context);
+  }
+
+  void _setError(String error) {
+    _error = error;
+  }
+
+  bool _isError() {
+    return _error != '';
   }
 }

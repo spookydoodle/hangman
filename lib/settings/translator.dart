@@ -2,34 +2,34 @@ import 'package:hangman/settings/settings.dart';
 
 class Translator {
   // Main screen
-  String title = "";
-  String subtitle = "";
-  String language = "";
-  String category = "";
-  String play = "";
-  String leaderboard = "";
-  String exit = "";
+  final String title;
+  final String subtitle;
+  final String language;
+  final String category;
+  final String play;
+  final String leaderboard;
+  final String exit;
 
   // Categories
-  String general = "";
-  String business = "";
-  String entertainment = "";
-  String science = "";
-  String health = "";
-  String sport = "";
+  final String general;
+  final String business;
+  final String entertainment;
+  final String science;
+  final String health;
+  final String sport;
 
   // AppBar
-  String settings = "";
-  String account = "";
+  final String settings;
+  final String account;
 
   // Game over
-  String wonGames = "";
-  String remainingGuesses = "";
-  String youWon = "";
-  String youLost = "";
-  String nextGame = "";
-  String startNewGame = "";
-  String goToNews = "";
+  final String wonGames;
+  final String remainingGuesses;
+  final String youWon;
+  final String youLost;
+  final String nextGame;
+  final String startNewGame;
+  final String goToNews;
 
   Translator(
       {required this.title,
@@ -87,7 +87,7 @@ Translator polishTranslator = new Translator(
     category: "Kategoria",
     play: "Graj",
     leaderboard: "Tablica wyników",
-    exit: "Wyjdź z gry",
+    exit: "Wyjdź",
     general: "Aktualności",
     business: "Biznes",
     entertainment: "Rozrywka",
@@ -106,12 +106,12 @@ Translator polishTranslator = new Translator(
 
 Translator dutchTranslator = new Translator(
     title: "Het Spel Van De Beul",
-    subtitle: "Raad Eens Het Nieuws",
+    subtitle: "Raad Het Nieuws",
     language: "Taal",
     category: "Categorie",
     play: "Spel",
     leaderboard: "Scorebord",
-    exit: "Spel afsluiten",
+    exit: "Afsluiten",
     general: "Algemeen",
     business: "Zakelijk",
     entertainment: "Amusement",
@@ -135,7 +135,7 @@ Translator germanTranslator = new Translator(
     category: "Kategorie",
     play: "Los!",
     leaderboard: "Bestenliste",
-    exit: "Spiel verlassen",
+    exit: "Verlassen",
     general: "Aktuelle",
     business: "Wirtschaft",
     entertainment: "Unterhaltung",
@@ -151,18 +151,3 @@ Translator germanTranslator = new Translator(
     nextGame: "Nächstes Spiel ",
     startNewGame: "Neues Spiel starten",
     goToNews: "Lies diese Nachricht");
-
-Translator getTranslator(Lang lang) {
-  switch (lang) {
-    case Lang.english:
-      return englishTranslator;
-    case Lang.german:
-      return germanTranslator;
-    case Lang.dutch:
-      return dutchTranslator;
-    case Lang.polish:
-      return polishTranslator;
-    default:
-      return englishTranslator;
-  }
-}

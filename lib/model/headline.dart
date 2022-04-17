@@ -1,8 +1,10 @@
 class Keyword {
-  String text = "";
-  String url = "";
+  int id;
+  String text;
+  String url;
+  int maxMistakes;
 
-  Keyword(this.text, this.url);
+  Keyword({required this.id, required this.text, required this.url, required this.maxMistakes});
 }
 
 class HeadlineModel {
