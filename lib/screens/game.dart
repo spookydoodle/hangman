@@ -37,7 +37,7 @@ class _GameState extends State<Game> {
   List<String> _usedLetters = [];
   List<String> _wrongLetters = [];
 
-  bool _gameOver = false;
+  bool _isGameInProgress = true;
   bool _gameWon = false;
 
   List<Keyword> _keywords = [];
@@ -47,8 +47,8 @@ class _GameState extends State<Game> {
   final int _maxKeywordLength = 65;
 
   final Range _maxMistakesRange = Range(3, 7);
-  int mistakeIndex = 0;
-  int wonGames = 0;
+  int _mistakeIndex = 0;
+  int _wonGames = 0;
 
   String _error = '';
 
@@ -76,7 +76,7 @@ class _GameState extends State<Game> {
 
   Widget _body() {
     if (_isError()) {
-      return errorPopup(_error, _onHome);
+      return errorPopup('aaa', _onHome);
     }
 
     return _needsKeywordsUpdate()
@@ -84,16 +84,16 @@ class _GameState extends State<Game> {
         : gameView(
             context: context,
             translator: widget.translator,
-            wonGames: wonGames,
+            wonGames: _wonGames,
             maxMistakes: _keyword.maxMistakes,
-            mistakeIndex: mistakeIndex,
-            keywordDisplay: _replaceChar(),
+            mistakeIndex: _mistakeIndex,
+            keyword: _keyword.text,
             url: _keyword.url,
             alphabet: _alphabet,
             wrongLetters: _wrongLetters,
             usedLetters: _usedLetters,
             onLetterClick: _checkLetter,
-            gameOver: _gameOver,
+            isGameInProgress: _isGameInProgress,
             gameWon: _gameWon,
             next: _nextGame,
           );
@@ -118,7 +118,7 @@ class _GameState extends State<Game> {
     _alphabet.forEach((char) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
-            _gameOver ? keywordCopy : keywordCopy.replaceAll(char, '_');
+            _isGameInProgress ? keywordCopy.replaceAll(char, '_') : keywordCopy;
       }
     });
 
@@ -126,8 +126,9 @@ class _GameState extends State<Game> {
   }
 
   void _checkLetter(String char) {
-    if (!_gameOver && !_gameWon) {
-      var isCharInKeyword = _keyword.text.toUpperCase().contains(char.toUpperCase());
+    if (_isGameInProgress && !_gameWon) {
+      var isCharInKeyword =
+          _keyword.text.toUpperCase().contains(char.toUpperCase());
 
       setState(() {
         _usedLetters.add(char);
@@ -143,8 +144,10 @@ class _GameState extends State<Game> {
 
   void _onCorrect() {
     _replacedKeyword = _replaceChar();
+    var gameWon = _replacedKeyword == _keyword.text;
+    _setIsGameInProgress(!gameWon);
 
-    if (_replacedKeyword == _keyword.text) {
+    if (gameWon) {
       _setGameWon(true);
       _increaseWonGames();
     }
@@ -154,16 +157,16 @@ class _GameState extends State<Game> {
     if (!_wrongLetters.contains(char)) {
       _wrongLetters.add(char);
       _increaseMistakeIndex();
-      _setGameOver(mistakeIndex == _keyword.maxMistakes);
+      _setIsGameInProgress(_mistakeIndex < _keyword.maxMistakes);
     }
   }
 
   void _increaseMistakeIndex() {
-    mistakeIndex++;
+    _mistakeIndex++;
   }
 
   void _increaseWonGames() {
-    wonGames++;
+    _wonGames++;
   }
 
   // Main game
@@ -199,12 +202,14 @@ class _GameState extends State<Game> {
   }
 
   Future<bool> _checkInternetConnection() async {
+    print('checking connection');
     try {
       final response = await InternetAddress.lookup('spookydoodle.com');
+      // var connectivityResult = await (Connectivity().checkConnectivity());
+      print(response.isNotEmpty);
 
       return response.isNotEmpty;
-    } catch(err) {
-
+    } catch (err) {
       return false;
     }
   }
@@ -252,7 +257,7 @@ class _GameState extends State<Game> {
               _getMaxMistakes(headline.headline)))
           .map((headline) => new Keyword(
               id: headline.id,
-              text: headline.headline.toUpperCase(),
+              text: headline.headline.replaceAll(RegExp(' +'), ' ').toUpperCase(),
               url: headline.url,
               maxMistakes: _getMaxMistakes(headline.headline)))
           .toList();
@@ -346,9 +351,9 @@ class _GameState extends State<Game> {
       _resetMistakeIndex();
       _setKeyword(keyword);
       _setGameWon(false);
+      _setIsGameInProgress(true);
 
       if (reset) {
-        _setGameOver(false);
         _resetWonGames();
       }
     });
@@ -364,7 +369,7 @@ class _GameState extends State<Game> {
   }
 
   void _resetMistakeIndex() {
-    mistakeIndex = 0;
+    _mistakeIndex = 0;
   }
 
   void _setKeyword(Keyword keyword) {
@@ -375,12 +380,12 @@ class _GameState extends State<Game> {
     _gameWon = b;
   }
 
-  void _setGameOver(bool b) {
-    _gameOver = b;
+  void _setIsGameInProgress(bool b) {
+    _isGameInProgress = b;
   }
 
   void _resetWonGames() {
-    wonGames = 0;
+    _wonGames = 0;
   }
 
   void _setError(String error) {

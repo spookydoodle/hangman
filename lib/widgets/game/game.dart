@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hangman/settings/translator.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-// User Interface components
-//_usedLetters.contains(char)
-Widget letterButton(
-        {required void Function() onPressed,
-        required Widget child,
-        required bool used}) =>
-    used
-        ? OutlinedButton(onPressed: onPressed, child: child)
-        : ElevatedButton(onPressed: onPressed, child: child);
+import 'package:hangman/widgets/game/game_over_popup.dart';
+import 'package:hangman/widgets/game/keyboard.dart';
+import 'package:hangman/widgets/game/keyword_display.dart';
+import 'package:hangman/widgets/game/score.dart';
 
 Widget gameView({
   required BuildContext context,
@@ -18,13 +11,13 @@ Widget gameView({
   required int wonGames,
   required int maxMistakes,
   required int mistakeIndex,
-  required String keywordDisplay,
+  required String keyword,
   required String url,
   required List<String> alphabet,
   required List<String> wrongLetters,
   required List<String> usedLetters,
   required void Function(String) onLetterClick,
-  required bool gameOver,
+  required bool isGameInProgress,
   required bool gameWon,
   required void Function({required bool reset}) next,
 }) {
@@ -34,43 +27,43 @@ Widget gameView({
     child: Stack(
       children: [
         // TODO: Handle overflow (scroll?)
-        mainGame(
+        _game(
             context: context,
             translator: translator,
             wonGames: wonGames,
             maxMistakes: maxMistakes,
             mistakeIndex: mistakeIndex,
-            keywordDisplay: keywordDisplay,
+            keyword: keyword,
             alphabet: alphabet,
             wrongLetters: wrongLetters,
             usedLetters: usedLetters,
             onLetterClick: onLetterClick),
-        if (gameWon)
-          gameOverScreen(
-              translator: translator,
-              message: translator.youWon,
-              buttonText: translator.nextGame,
-              url: url,
-              onPressed: () => next(reset: false)),
-        if (gameOver)
-          gameOverScreen(
-              translator: translator,
-              message: translator.youLost,
-              buttonText: translator.startNewGame,
-              url: url,
-              onPressed: () => next(reset: true)),
+        if (!isGameInProgress)
+          gameWon
+              ? gameOverPopup(
+                  translator: translator,
+                  message: translator.youWon,
+                  buttonText: translator.nextGame,
+                  url: url,
+                  onPressed: () => next(reset: false))
+              : gameOverPopup(
+                  translator: translator,
+                  message: translator.youLost,
+                  buttonText: translator.startNewGame,
+                  url: url,
+                  onPressed: () => next(reset: true)),
       ],
     ),
   );
 }
 
-Widget mainGame(
+Widget _game(
     {required BuildContext context,
     required Translator translator,
     required int wonGames,
     required int maxMistakes,
     required int mistakeIndex,
-    required String keywordDisplay,
+    required String keyword,
     required List<String> alphabet,
     required List<String> usedLetters,
     required List<String> wrongLetters,
@@ -78,134 +71,23 @@ Widget mainGame(
   return Column(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: <Widget>[
-      displayScore(
+      score(
           translator: translator,
           wonGames: wonGames,
           mistakeIndex: mistakeIndex,
           maxMistakes: maxMistakes),
       // Spacer(),
-      displayKeyword(context: context, keywordDisplay: keywordDisplay),
+      keywordDisplay(
+          context: context,
+          keyword: keyword,
+          usedLetters: usedLetters),
       // Spacer(),
-      displayAlphabet(
+      keyboard(
           context: context,
           alphabet: alphabet,
           usedLetters: usedLetters,
           wrongLetters: wrongLetters,
           onLetterClick: onLetterClick),
     ],
-  );
-}
-
-// TODO: Replace with new graphics and handle dynamic maxMistakes
-Widget displayScore(
-    {required Translator translator,
-    required int wonGames,
-    required int maxMistakes,
-    required int mistakeIndex}) {
-  final Image gallowsImage = Image.asset('assets/images/doodle-1/wrong_0.png');
-  final List mistakeImages = [
-    Image.asset('assets/images/doodle-1/wrong_1.png'),
-    Image.asset('assets/images/doodle-1/wrong_2.png'),
-    Image.asset('assets/images/doodle-1/wrong_3.png'),
-    Image.asset('assets/images/doodle-1/wrong_4.png'),
-    Image.asset('assets/images/doodle-1/wrong_5.png'),
-    Image.asset('assets/images/doodle-1/wrong_6.png'),
-  ];
-
-  return Column(
-    children: [
-      Text('${translator.wonGames}: $wonGames'),
-      Text('${translator.remainingGuesses}: ${maxMistakes - mistakeIndex}'),
-      Padding(
-        padding: const EdgeInsets.only(top: 20.0),
-        child: Container(
-          height: 120,
-          width: 120,
-          child: Stack(
-            children: <Widget>[
-              if (mistakeIndex > 0 && mistakeIndex <= maxMistakes) gallowsImage,
-              // Temp: gallows image
-              if (mistakeIndex > 1 && mistakeIndex <= maxMistakes)
-                mistakeImages[(mistakeIndex - 2) % mistakeImages.length],
-              // Temp: character state
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-// TODO: Move logic to cover characters from game to here
-Widget displayKeyword(
-    {required BuildContext context, required String keywordDisplay}) {
-  return Text(keywordDisplay,
-      textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.subtitle1);
-}
-
-// TODO: Consider Table widget
-Widget displayAlphabet(
-    {required BuildContext context,
-    required List<String> alphabet,
-    required List<String> usedLetters,
-    required List<String> wrongLetters,
-    required void Function(String) onLetterClick}) {
-  return Wrap(
-    alignment: WrapAlignment.center,
-    direction: Axis.horizontal,
-    children: <Widget>[
-      ...alphabet.map((char) {
-        bool wrong = wrongLetters.contains(char);
-        bool used = usedLetters.contains(char);
-        ThemeData theme = Theme.of(context);
-        void Function() onPressed = () => onLetterClick(char);
-
-        return letterButton(
-            used: used,
-            child: Text(
-              char,
-              style: theme.textTheme.button?.copyWith(
-                color: wrong
-                    ? theme.accentColor
-                    : used
-                        ? Colors.grey
-                        : null,
-                decoration:
-                    used ? TextDecoration.lineThrough : TextDecoration.none,
-              ),
-            ),
-            onPressed: onPressed);
-      })
-    ],
-  );
-}
-
-Widget gameOverScreen(
-    {required Translator translator,
-    required String message,
-    required String buttonText,
-    required String url,
-    required void Function() onPressed}) {
-  return Center(
-    child: Column(children: [
-      Spacer(),
-      Container(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                Text(message, style: TextStyle(color: Colors.white)),
-                new InkWell(
-                    child: new Text(translator.goToNews),
-                    onTap: () => launch(url)),
-                ElevatedButton(onPressed: onPressed, child: Text(buttonText))
-              ],
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-            ),
-          ),
-          color: Colors.teal),
-    ]),
   );
 }
