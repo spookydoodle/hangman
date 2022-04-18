@@ -18,7 +18,7 @@ PreferredSizeWidget gameAppBar(BuildContext context, Function() onHome) => AppBa
             radius: 25,
             child: Padding(
               padding: const EdgeInsets.all(5.0),
-              child: Image.asset('images/doodle-1/main.png'),
+              child: Image.asset('assets/images/doodle-1/main.png'),
             ),
           ),
         ),

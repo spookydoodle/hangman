@@ -102,14 +102,14 @@ Widget displayScore(
     required int wonGames,
     required int maxMistakes,
     required int mistakeIndex}) {
-  final Image gallowsImage = Image.asset('images/doodle-1/wrong_0.png');
+  final Image gallowsImage = Image.asset('assets/images/doodle-1/wrong_0.png');
   final List mistakeImages = [
-    Image.asset('images/doodle-1/wrong_1.png'),
-    Image.asset('images/doodle-1/wrong_2.png'),
-    Image.asset('images/doodle-1/wrong_3.png'),
-    Image.asset('images/doodle-1/wrong_4.png'),
-    Image.asset('images/doodle-1/wrong_5.png'),
-    Image.asset('images/doodle-1/wrong_6.png'),
+    Image.asset('assets/images/doodle-1/wrong_1.png'),
+    Image.asset('assets/images/doodle-1/wrong_2.png'),
+    Image.asset('assets/images/doodle-1/wrong_3.png'),
+    Image.asset('assets/images/doodle-1/wrong_4.png'),
+    Image.asset('assets/images/doodle-1/wrong_5.png'),
+    Image.asset('assets/images/doodle-1/wrong_6.png'),
   ];
 
   return Column(

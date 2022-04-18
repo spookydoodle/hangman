@@ -1,6 +1,5 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:hangman/components/game/game.dart';
-import 'package:hangman/components/game/game_app_bar.dart';
 import 'package:hangman/files/storage.dart';
 import 'package:hangman/model/common.dart';
 import 'package:hangman/model/headline.dart';
@@ -8,8 +7,10 @@ import 'package:hangman/network/network.dart';
 import 'package:hangman/settings/memory.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/translator.dart';
+import 'package:hangman/widgets/game/game.dart';
+import 'package:hangman/widgets/game/game_app_bar.dart';
+import 'package:hangman/widgets/navigation/error_popup.dart';
 
-// Storage is used to save processed headline ID's in order not to display the same headline more than once
 class Game extends StatefulWidget {
   final FileManager storage;
   final Translator translator;
@@ -56,6 +57,7 @@ class _GameState extends State<Game> {
     super.initState();
 
     _copyProcessedIdsToMemory();
+
     _alphabet = Settings.getAlphabet(widget.country)
         .split('')
         .map((char) => char.toUpperCase())
@@ -74,7 +76,7 @@ class _GameState extends State<Game> {
 
   Widget _body() {
     if (_isError()) {
-      return Text(_error);
+      return errorPopup(_error, _onHome);
     }
 
     return _needsKeywordsUpdate()
@@ -110,21 +112,6 @@ class _GameState extends State<Game> {
     });
   }
 
-  Future<List<HeadlineModel>> _fetchHeadlines(int page) async {
-    try {
-      var headlines =
-          await _network.getHeadlines(widget.category, widget.country, page);
-
-      return headlines.sublist(0, 10);
-    } catch (err) {
-      setState(() {
-        _setError(err.toString());
-      });
-
-      return [];
-    }
-  }
-
   String _replaceChar() {
     String keywordCopy = [..._keyword.text.split('')].join('').toUpperCase();
 
@@ -140,10 +127,12 @@ class _GameState extends State<Game> {
 
   void _checkLetter(String char) {
     if (!_gameOver && !_gameWon) {
+      var isCharInKeyword = _keyword.text.toUpperCase().contains(char.toUpperCase());
+
       setState(() {
         _usedLetters.add(char);
 
-        if (_keyword.text.contains(char)) {
+        if (isCharInKeyword) {
           _onCorrect();
         } else {
           _onMistake(char);
@@ -152,7 +141,6 @@ class _GameState extends State<Game> {
     }
   }
 
-  // Result check
   void _onCorrect() {
     _replacedKeyword = _replaceChar();
 
@@ -162,7 +150,6 @@ class _GameState extends State<Game> {
     }
   }
 
-  // Increase index and if reached the max allowed mistakes end the game and reset index
   void _onMistake(String char) {
     if (!_wrongLetters.contains(char)) {
       _wrongLetters.add(char);
@@ -179,10 +166,6 @@ class _GameState extends State<Game> {
     wonGames++;
   }
 
-  void _increaseNetworkPageIndex() {
-    _networkPage++;
-  }
-
   // Main game
   void _nextGame({required bool reset}) async {
     if (_isError()) {
@@ -193,6 +176,14 @@ class _GameState extends State<Game> {
 
     // Fetch new data, then run next game. Prevent this method from continuing
     if (_needsKeywordsUpdate()) {
+      if (!await _checkInternetConnection()) {
+        setState(() {
+          _setError('Internet connection required to update game.');
+        });
+
+        return;
+      }
+
       await _updateKeywords();
       _nextGame(reset: reset);
 
@@ -207,6 +198,17 @@ class _GameState extends State<Game> {
     return len == 0 || _keywordIndex >= len;
   }
 
+  Future<bool> _checkInternetConnection() async {
+    try {
+      final response = await InternetAddress.lookup('spookydoodle.com');
+
+      return response.isNotEmpty;
+    } catch(err) {
+
+      return false;
+    }
+  }
+
   Future<void> _updateKeywords() async {
     var keywords = await _getNewKeywords();
 
@@ -214,6 +216,14 @@ class _GameState extends State<Game> {
       _resetKeywordIndex();
       _setKeywords(keywords);
     });
+  }
+
+  void _resetKeywordIndex() {
+    _keywordIndex = -1;
+  }
+
+  void _setKeywords(List<Keyword> newKeywords) {
+    _keywords = newKeywords;
   }
 
   // Scenario 1: API page returns 0 results - Try to fetch results 5 times for ++page, if nothing received show error and go back to home screen
@@ -242,7 +252,7 @@ class _GameState extends State<Game> {
               _getMaxMistakes(headline.headline)))
           .map((headline) => new Keyword(
               id: headline.id,
-              text: headline.headline,
+              text: headline.headline.toUpperCase(),
               url: headline.url,
               maxMistakes: _getMaxMistakes(headline.headline)))
           .toList();
@@ -257,21 +267,41 @@ class _GameState extends State<Game> {
     return newKeywords;
   }
 
-  void _resetKeywordIndex() {
-    _keywordIndex = -1;
+  Future<List<HeadlineModel>> _fetchHeadlines(int page) async {
+    try {
+      var headlines =
+          await _network.getHeadlines(widget.category, widget.country, page);
+
+      return headlines;
+    } catch (err) {
+      setState(() {
+        _setError(err.toString());
+      });
+
+      return [];
+    }
   }
 
-  void _setKeywords(List<Keyword> newKeywords) {
-    _keywords = newKeywords;
+  void _increaseNetworkPageIndex() {
+    _networkPage++;
   }
 
-  Keyword _getKeyword() {
-    Keyword keyword = _keywords[_keywordIndex];
+  _isHeadlineOk(int id, String text, int maxMistakes) {
+    return !_isHeadlineProcessed(id) &&
+        !_isKeywordTooLong(text) &&
+        !_isMaxMistakesOutOfRange(maxMistakes);
+  }
 
-    Memory.processedIds.add(keyword.id);
-    widget.storage.writeHeadline(keyword.id.toString());
+  _isHeadlineProcessed(int id) {
+    return Memory.processedIds.contains(id);
+  }
 
-    return keyword;
+  _isKeywordTooLong(String text) {
+    return text.length > _maxKeywordLength;
+  }
+
+  _isMaxMistakesOutOfRange(maxMistakes) {
+    return maxMistakes == -1;
   }
 
   // Adjust maxMistakes based on number of unique characters in the headline. Returns -1 for rejected keywords
@@ -301,22 +331,13 @@ class _GameState extends State<Game> {
         : ((alphabetLen - uniqueCharLen) / factor).floor();
   }
 
-  _isHeadlineOk(int id, String text, int maxMistakes) {
-    return !_isHeadlineProcessed(id) &&
-        !_isKeywordTooLong(text) &&
-        !_isMaxMistakesOutOfRange(maxMistakes);
-  }
+  Keyword _getKeyword() {
+    Keyword keyword = _keywords[_keywordIndex];
 
-  _isHeadlineProcessed(int id) {
-    return Memory.processedIds.contains(id);
-  }
+    Memory.processedIds.add(keyword.id);
+    widget.storage.writeHeadline(keyword.id.toString());
 
-  _isKeywordTooLong(String text) {
-    return text.length > _maxKeywordLength;
-  }
-
-  _isMaxMistakesOutOfRange(maxMistakes) {
-    return maxMistakes == -1;
+    return keyword;
   }
 
   _launchGame({required bool reset, required Keyword keyword}) {
@@ -362,15 +383,15 @@ class _GameState extends State<Game> {
     wonGames = 0;
   }
 
-  _onHome() {
-    Navigator.pop(context);
-  }
-
   void _setError(String error) {
     _error = error;
   }
 
   bool _isError() {
     return _error != '';
+  }
+
+  _onHome() {
+    Navigator.pop(context);
   }
 }

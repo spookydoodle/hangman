@@ -1,12 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hangman/files/storage.dart';
-import 'package:hangman/components/navigation/app_bar.dart';
-import 'package:hangman/components/navigation/menu.dart';
-import 'package:hangman/components/selection/dropdown.dart';
-import 'package:hangman/pages/game.dart';
+import 'package:hangman/screens/game.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/translator.dart';
+import 'package:hangman/widgets/navigation/app_bar.dart';
+import 'package:hangman/widgets/navigation/menu_buttons.dart';
+import 'package:hangman/widgets/selection/dropdown.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -26,7 +26,6 @@ class _HomeState extends State<Home> {
 
     translator = Settings.getTranslator(country);
     storage.readJsonFile().then((value) {
-      print('INITIALIZE HOME PAGE');
       Country countryFromStorage = Settings.getCountry(value['country']);
 
       setState(() {
@@ -64,7 +63,7 @@ class _HomeState extends State<Home> {
           radius: 80,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Image.asset('images/doodle-1/main.png'),
+            child: Image.asset('assets/images/doodle-1/main.png'),
           ),
         ),
       );

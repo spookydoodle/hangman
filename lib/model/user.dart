@@ -1,6 +1,6 @@
 class User {
   final String name;
-  // TOOD: add scores
+  // TODO: add scores
 
   User(this.name);
 
