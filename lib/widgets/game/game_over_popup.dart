@@ -26,7 +26,7 @@ Widget gameOverPopup(
               crossAxisAlignment: CrossAxisAlignment.center,
             ),
           ),
-          color: Colors.white70),
+          color: Colors.grey),
     ]),
   );
 }

@@ -17,7 +17,7 @@ class HeadlineNetwork {
     var finalUrl = '$baseUrl?$query';
 
     print('URL: ${Uri.encodeFull(finalUrl)}');
-    final response = await get(Uri.parse(finalUrl));
+    final response = await get(Uri.parse(finalUrl)).timeout(Duration(seconds: 10));
 
     if (response.statusCode == 200) {
       List<dynamic> list = json.decode(response.body);

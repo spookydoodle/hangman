@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hangman/files/storage.dart';
 import 'package:hangman/model/common.dart';
@@ -76,7 +76,7 @@ class _GameState extends State<Game> {
 
   Widget _body() {
     if (_isError()) {
-      return errorPopup('aaa', _onHome);
+      return errorPopup(_error, _onHome);
     }
 
     return _needsKeywordsUpdate()
@@ -180,8 +180,9 @@ class _GameState extends State<Game> {
     // Fetch new data, then run next game. Prevent this method from continuing
     if (_needsKeywordsUpdate()) {
       if (!await _checkInternetConnection()) {
+        // TODO: Save current user's score
         setState(() {
-          _setError('Internet connection required to update game.');
+          _setError("It looks like you're not connected to the internet. Connect and try again.");
         });
 
         return;
@@ -202,13 +203,11 @@ class _GameState extends State<Game> {
   }
 
   Future<bool> _checkInternetConnection() async {
-    print('checking connection');
     try {
-      final response = await InternetAddress.lookup('spookydoodle.com');
-      // var connectivityResult = await (Connectivity().checkConnectivity());
-      print(response.isNotEmpty);
+      var connectivityResult = await Connectivity().checkConnectivity();
+      var isConnected = connectivityResult == ConnectivityResult.wifi || connectivityResult == ConnectivityResult.mobile;
 
-      return response.isNotEmpty;
+      return isConnected;
     } catch (err) {
       return false;
     }
@@ -221,14 +220,6 @@ class _GameState extends State<Game> {
       _resetKeywordIndex();
       _setKeywords(keywords);
     });
-  }
-
-  void _resetKeywordIndex() {
-    _keywordIndex = -1;
-  }
-
-  void _setKeywords(List<Keyword> newKeywords) {
-    _keywords = newKeywords;
   }
 
   // Scenario 1: API page returns 0 results - Try to fetch results 5 times for ++page, if nothing received show error and go back to home screen
@@ -280,11 +271,19 @@ class _GameState extends State<Game> {
       return headlines;
     } catch (err) {
       setState(() {
-        _setError(err.toString());
+        _setError(err.toString().contains('TimeoutException') ? "It's taking too long... Check your internet connection.": err.toString());
       });
 
       return [];
     }
+  }
+
+  void _resetKeywordIndex() {
+    _keywordIndex = -1;
+  }
+
+  void _setKeywords(List<Keyword> newKeywords) {
+    _keywords = newKeywords;
   }
 
   void _increaseNetworkPageIndex() {
