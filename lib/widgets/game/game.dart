@@ -37,7 +37,8 @@ Widget gameView({
             alphabet: alphabet,
             wrongLetters: wrongLetters,
             usedLetters: usedLetters,
-            onLetterClick: onLetterClick),
+            onLetterClick: onLetterClick,
+            isGameLost: !isGameInProgress && !gameWon),
         if (!isGameInProgress)
           gameWon
               ? gameOverPopup(
@@ -67,7 +68,8 @@ Widget _game(
     required List<String> alphabet,
     required List<String> usedLetters,
     required List<String> wrongLetters,
-    required void Function(String) onLetterClick}) {
+    required void Function(String) onLetterClick,
+    required bool isGameLost}) {
   return Column(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: <Widget>[
@@ -80,7 +82,9 @@ Widget _game(
       keywordDisplay(
           context: context,
           keyword: keyword,
-          usedLetters: usedLetters),
+          usedLetters: usedLetters,
+          alphabet: alphabet,
+          isGameLost: isGameLost),
       // Spacer(),
       keyboard(
           context: context,

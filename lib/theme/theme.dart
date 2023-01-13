@@ -92,10 +92,9 @@ TextTheme _appTextTheme(TextTheme base) => base
       ),
       // Button
       button: base.button?.copyWith(
-        // letterSpacing: 3.0,
-        fontSize: 25.0,
-        color: Colors.white
-      ),
+          // letterSpacing: 3.0,
+          fontSize: 25.0,
+          color: Colors.white),
     )
     .apply(
       // Apply to all elements

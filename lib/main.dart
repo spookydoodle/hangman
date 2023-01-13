@@ -5,14 +5,16 @@ import 'package:hangman/theme/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() => runApp(MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => FileController())],
-      child: MyApp(),
-    ));
+  providers: [ChangeNotifierProvider(create: (_) => FileController())],
+  child: const App(),
+));
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
+  const App({super.key});
+
   @override
   Widget build(BuildContext context) {
-    context.read<FileController>().readText();
+    context.read<FileController>().readHeadlineIds();
     // context.read<FileController>().readUser();
     // context.read<FileController>().readImage();
     return MaterialApp(

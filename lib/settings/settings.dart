@@ -5,7 +5,7 @@ enum Country { gb, us, de, nl, pl }
 enum Lang { english, german, polish, dutch }
 
 class Settings {
-  static Country getCountry(String str) {
+  static Country getCountry(String? str) {
     switch (str) {
       case 'gb':
         return Country.gb;
@@ -22,7 +22,7 @@ class Settings {
     }
   }
 
-  static Lang getLang(Country country) {
+  static Lang getLang(Country? country) {
     switch (country) {
       case Country.gb:
         return Lang.english;
@@ -39,7 +39,7 @@ class Settings {
     }
   }
 
-  static Category getCategory(String str) {
+  static Category getCategory(String? str) {
     switch (str) {
       case 'general':
         return Category.general;
@@ -58,7 +58,7 @@ class Settings {
     }
   }
 
-  static String getAlphabet(Country country) {
+  static String getAlphabet(Country? country) {
     final Lang lang = Settings.getLang(country);
 
     switch (lang) {
@@ -75,7 +75,7 @@ class Settings {
     }
   }
 
-  static Translator getTranslator(Country country) {
+  static Translator getTranslator(Country? country) {
     final Lang lang = Settings.getLang(country);
 
     switch (lang) {

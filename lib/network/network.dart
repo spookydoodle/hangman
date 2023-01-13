@@ -3,7 +3,7 @@ import 'package:hangman/model/headline.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:http/http.dart';
 
-// Get from https://felidae.spookydoodle.com/news/${category}?cc=${country}&sortBy=timestamp desc&page=${page}
+// Get from http://felidae.spookydoodle.com/news/${category}?cc=${country}&sortBy=timestamp desc&page=${page}
 // category = { general, business, sport, entertainment, health, science }
 // lang (cc) = { en (gb), en (us), de (de), nl (nl), pl (pl) }
 // Create object in memory to store id's which user was already processed (shown to guess or rejected due to length)
@@ -12,12 +12,12 @@ class HeadlineNetwork {
     var cat = category.toString().split('.').last;
     var cc = country.toString().split('.').last;
 
-    var baseUrl = 'https://felidae.spookydoodle.com/news/$cat';
+    var baseUrl = 'http://felidae.spookydoodle.com/news/$cat';
     var query = 'cc=$cc&sortBy=timestamp desc&page=$page';
     var finalUrl = '$baseUrl?$query';
 
     print('URL: ${Uri.encodeFull(finalUrl)}');
-    final response = await get(Uri.parse(finalUrl)).timeout(Duration(seconds: 10));
+    final response = await get(Uri.parse(finalUrl)).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
       List<dynamic> list = json.decode(response.body);

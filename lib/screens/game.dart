@@ -1,6 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:hangman/files/storage.dart';
+import 'package:hangman/files/file_manager.dart';
 import 'package:hangman/model/common.dart';
 import 'package:hangman/model/headline.dart';
 import 'package:hangman/network/network.dart';
@@ -26,10 +26,10 @@ class Game extends StatefulWidget {
       : super(key: key);
 
   @override
-  _GameState createState() => _GameState();
+  GameState createState() => GameState();
 }
 
-class _GameState extends State<Game> {
+class GameState extends State<Game> {
   final HeadlineNetwork _network = HeadlineNetwork();
   int _networkPage = 1;
 
@@ -42,7 +42,7 @@ class _GameState extends State<Game> {
 
   List<Keyword> _keywords = [];
   int _keywordIndex = -1;
-  Keyword _keyword = new Keyword(id: -1, text: "", url: "", maxMistakes: -1);
+  Keyword _keyword = Keyword(id: -1, text: "", url: "", maxMistakes: -1);
   String _replacedKeyword = "";
   final int _maxKeywordLength = 65;
 
@@ -80,7 +80,7 @@ class _GameState extends State<Game> {
     }
 
     return _needsKeywordsUpdate()
-        ? CircularProgressIndicator()
+        ? const CircularProgressIndicator()
         : gameView(
             context: context,
             translator: widget.translator,
@@ -115,12 +115,12 @@ class _GameState extends State<Game> {
   String _replaceChar() {
     String keywordCopy = [..._keyword.text.split('')].join('').toUpperCase();
 
-    _alphabet.forEach((char) {
+    for (var char in _alphabet) {
       if (!_usedLetters.contains(char)) {
         keywordCopy =
-            _isGameInProgress ? keywordCopy.replaceAll(char, '_') : keywordCopy;
+        _isGameInProgress ? keywordCopy.replaceAll(char, '_') : keywordCopy;
       }
-    });
+    }
 
     return keywordCopy;
   }
@@ -232,7 +232,7 @@ class _GameState extends State<Game> {
       var headlines = await _fetchHeadlines(_networkPage);
       _increaseNetworkPageIndex();
 
-      if (headlines.length == 0) {
+      if (headlines.isEmpty) {
         if (retry == maxRetry) {
           setState(() {
             _setError(
@@ -246,14 +246,14 @@ class _GameState extends State<Game> {
       newKeywords = headlines
           .where((headline) => _isHeadlineOk(headline.id, headline.headline,
               _getMaxMistakes(headline.headline)))
-          .map((headline) => new Keyword(
+          .map((headline) => Keyword(
               id: headline.id,
               text: headline.headline.replaceAll(RegExp(' +'), ' ').toUpperCase(),
               url: headline.url,
               maxMistakes: _getMaxMistakes(headline.headline)))
           .toList();
 
-      if (newKeywords.length == 0) {
+      if (newKeywords.isEmpty) {
         continue;
       }
 
@@ -310,7 +310,7 @@ class _GameState extends State<Game> {
 
   // Adjust maxMistakes based on number of unique characters in the headline. Returns -1 for rejected keywords
   int _getMaxMistakes(String text) {
-    final int factor = 2;
+    const int factor = 2;
     final int min = _maxMistakesRange.min;
     final int max = _maxMistakesRange.max;
     final int alphabetLen = _alphabet.length;
@@ -339,7 +339,7 @@ class _GameState extends State<Game> {
     Keyword keyword = _keywords[_keywordIndex];
 
     Memory.processedIds.add(keyword.id);
-    widget.storage.writeHeadline(keyword.id.toString());
+    widget.storage.writeHeadlineId(keyword.id.toString());
 
     return keyword;
   }

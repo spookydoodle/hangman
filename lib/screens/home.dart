@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:hangman/files/storage.dart';
+import 'package:flutter/services.dart';
+import 'package:hangman/files/file_manager.dart';
 import 'package:hangman/screens/game.dart';
 import 'package:hangman/settings/settings.dart';
 import 'package:hangman/settings/translator.dart';
@@ -9,13 +9,15 @@ import 'package:hangman/widgets/navigation/menu_buttons.dart';
 import 'package:hangman/widgets/selection/dropdown.dart';
 
 class Home extends StatefulWidget {
+  const Home({super.key});
+
   @override
-  _HomeState createState() => _HomeState();
+  HomeState createState() => HomeState();
 }
 
-FileManager storage = FileManager();
+FileManager fileManager = FileManager();
 
-class _HomeState extends State<Home> {
+class HomeState extends State<Home> {
   Category category = Category.general;
   Country country = Country.gb;
   Translator translator = Settings.getTranslator(Country.gb);
@@ -25,14 +27,16 @@ class _HomeState extends State<Home> {
     super.initState();
 
     translator = Settings.getTranslator(country);
-    storage.readJsonFile().then((value) {
-      Country countryFromStorage = Settings.getCountry(value['country']);
+    fileManager.readSettings().then((settings) {
+      Country countryFromStorage = Settings.getCountry(settings['country']);
 
       setState(() {
         country = countryFromStorage;
-        category = Settings.getCategory(value['category']);
+        category = Settings.getCategory(settings['category']);
         translator = Settings.getTranslator(countryFromStorage);
       });
+    }).catchError((err) {
+      print(err);
     });
   }
 
@@ -89,7 +93,7 @@ class _HomeState extends State<Home> {
               value: category.toString().split('.').last,
               onSelect: _updateCategory),
           Dropdown(
-              items: [
+              items: const [
                 ['gb', 'English (UK)'],
                 ['us', 'English (US)'],
                 ['de', 'Deutsch'],
@@ -106,8 +110,7 @@ class _HomeState extends State<Home> {
       category = Settings.getCategory(val);
     });
 
-    // TODO: Change func name
-    storage.writeJsonFile(val, country.toString().split('.').last);
+    fileManager.writeSettings(val, country.toString().split('.').last);
   }
 
   void _updateCountry(String val) {
@@ -118,21 +121,25 @@ class _HomeState extends State<Home> {
       translator = Settings.getTranslator(newCountry);
     });
 
-    storage.writeJsonFile(category.toString().split('.').last, val);
+    fileManager.writeSettings(category.toString().split('.').last, val);
   }
 
   Widget _menuButtons() => menuButtons(context, [
-        new MenuButtonData(translator.play, _onPlay),
-        new MenuButtonData(translator.leaderboard, _onLeaderboard),
-        new MenuButtonData(translator.exit, _onExit),
+        MenuButtonData(translator.play, _onPlay),
+        MenuButtonData(translator.leaderboard, _onLeaderboard),
+        MenuButtonData(translator.exit, _onExit),
       ]);
 
   _onPlay() {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
-                Game(storage: storage, translator: translator, country: country, category: category,)));
+            builder: (context) => Game(
+                  storage: fileManager,
+                  translator: translator,
+                  country: country,
+                  category: category,
+                )));
   }
 
   _onLeaderboard() {
@@ -140,6 +147,6 @@ class _HomeState extends State<Home> {
   }
 
   _onExit() {
-    // TODO:
+    SystemNavigator.pop();
   }
 }

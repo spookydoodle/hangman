@@ -1,40 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:hangman/model/user.dart';
-import 'package:hangman/files/storage.dart';
+import 'package:hangman/files/file_manager.dart';
 
+// TODO: Why was this file created, can just use file_manager?
 class FileController extends ChangeNotifier {
   String _text = '';
-  User _user = new User('');
+  // User _user = User('');
   // Uint8List _imageByteList;
 
   String get text => _text;
-
-  User get user => _user;
+  // User get user => _user;
 
   // Uint8List get imageByteList => _imageByteList;
 
-  readText() async {
+  readHeadlineIds() async {
     _text = await FileManager().readHeadlineIds();
     notifyListeners();
   }
 
-  // writeText() async {
-  //   _text = await FileManager().writeHeadline('a');
+  // writeHeadlineId() async {
+  //   _text = await FileManager().writeHeadlineId('a');
   //   notifyListeners();
   // }
 
-  readUser() async {
-    final result = await FileManager().readJsonFile();
-
-    if (result != null) {
-      _user = User.fromJson(await FileManager().readJsonFile());
-    }
-
-    notifyListeners();
-  }
+  // TODO: User data file - pas high scores etc - until saved remotely
+  // readUser() async {
+  //   _user = User.fromJson(await FileManager().readUser());
+  //   notifyListeners();
+  // }
 
   // writeUser() async {
-  //   _user = await FileManager().writeJsonFile();
+  //   _user = await FileManager().writeUser();
   //   notifyListeners();
   // }
 

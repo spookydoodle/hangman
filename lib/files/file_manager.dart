@@ -19,46 +19,48 @@ class FileManager {
     return directory.path;
   }
 
-  Future<File> get _textFile async {
+  Future<File> get _headlineIdsTextFile async {
     final path = await _localPath;
-    return File('$path/headline.txt');
+    final file = File('$path/headline.txt');
+    if (!await file.exists()) {
+      await file.create(recursive: true);
+    }
+    return file;
   }
 
-  Future<File> get _jsonFile async {
+  Future<File> get _settingsJsonFile async {
     final path = await _localPath;
-    return File('$path/settings.json');
+    final file = File('$path/settings.json');
+    if (!await file.exists()) {
+      await file.create(recursive: true);
+    }
+    return file;
   }
 
   Future<String> readHeadlineIds() async {
     try {
-      final file = await _textFile;
-
-      // Read the file
+      final file = await _headlineIdsTextFile;
       final contents = await file.readAsString();
 
       return contents;
     } catch (e) {
-      // If encountering an error, return 0
-      print(e.toString());
+      print(e);
       return '';
     }
   }
 
-  Future<File> writeHeadline(String id) async {
-    final file = await _textFile;
+  Future<File> writeHeadlineId(String id) async {
+    final file = await _headlineIdsTextFile;
 
-    // Write the file
-    return file.writeAsString('${id};', mode: FileMode.append);
+    return file.writeAsString('$id;', mode: FileMode.append);
   }
 
-  Future<Map<String, dynamic>> readJsonFile() async {
-    String fileContent = 'Cheetah Coding';
-
-    File file = await _jsonFile;
+  Future<Map<String, dynamic>> readSettings() async {
+    File file = await _settingsJsonFile;
 
     if (await file.exists()) {
       try {
-        fileContent = await file.readAsString();
+        final fileContent = await file.readAsString();
         return json.decode(fileContent);
       } catch (e) {
         print(e);
@@ -68,13 +70,13 @@ class FileManager {
     return {};
   }
 
-  Future<Map<String, dynamic>> writeJsonFile(String category, String country) async {
+  Future<Map<String, dynamic>> writeSettings(String category, String country) async {
     final Map<String, dynamic> settings = {
       "category": category,
       "country": country
     };
 
-    File file = await _jsonFile;
+    File file = await _settingsJsonFile;
     await file.writeAsString(json.encode(settings));
     return settings;
   }

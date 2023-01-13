@@ -43,15 +43,15 @@ class HeadlineModel {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['category'] = this.category;
-    data['country'] = this.country;
-    data['lang'] = this.lang;
-    data['headline'] = this.headline;
-    data['provider'] = this.provider;
-    data['url'] = this.url;
-    data['age'] = this.age;
-    data['timestamp'] = this.timestamp;
+    data['id'] = id;
+    data['category'] = category;
+    data['country'] = country;
+    data['lang'] = lang;
+    data['headline'] = headline;
+    data['provider'] = provider;
+    data['url'] = url;
+    data['age'] = age;
+    data['timestamp'] = timestamp;
 
     return data;
   }
